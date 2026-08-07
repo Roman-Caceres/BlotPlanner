@@ -1,0 +1,56 @@
+name: A number looks wrong
+description: Report an incorrect molecular weight, band position, or migration value
+title: "[accuracy] "
+labels: ["accuracy"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks — this is the most valuable report this tool can get. Every value in the app carries a
+        source, so a disagreement can be settled against the datasheet rather than argued.
+  - type: input
+    id: value
+    attributes:
+      label: Which value?
+      placeholder: e.g. GAPDH molecular weight, or the 50 kDa band position on a 12% gel
+    validations:
+      required: true
+  - type: input
+    id: shown
+    attributes:
+      label: What does the tool show?
+      placeholder: e.g. 37 kDa
+    validations:
+      required: true
+  - type: input
+    id: expected
+    attributes:
+      label: What should it be?
+      placeholder: e.g. 36 kDa
+    validations:
+      required: true
+  - type: input
+    id: source
+    attributes:
+      label: Source for the correct value
+      description: A datasheet link, catalog number, or publication. This is what settles it.
+      placeholder: e.g. https://www.cellsignal.com/products/5174/datasheet
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Which position source were you using?
+      options:
+        - Model
+        - Bio-Rad chart
+        - Calibrated
+        - Not applicable
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Shown in the footer of the app, and on any printout or exported plan.
+      placeholder: v1.0.0

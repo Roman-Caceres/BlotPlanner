@@ -5,7 +5,9 @@ out before you cut when it won't work.
 
 **→ [Open the planner](https://roman-caceres.github.io/BlotPlanner/)**
 
-Works in any browser, on desktop or phone. Nothing to install, no account, no data leaves your device.
+Works in any browser, on desktop or phone. Nothing to install, no account, no sign-in. **Your experiment
+never leaves your browser** — targets, weights and calibration measurements are computed locally and stored
+only in your own browser.
 
 ## What it does
 
@@ -60,6 +62,30 @@ internet connection. For the installable version with offline caching, serve the
 ```bash
 python -m http.server 8765
 ```
+
+## Found something wrong?
+
+Please [open an issue](https://github.com/Roman-Caceres/BlotPlanner/issues/new/choose). There are templates
+for three things:
+
+- **A number looks wrong** — the most useful report this tool can get. Every value carries a source, so a
+  disagreement gets settled against the datasheet rather than argued.
+- **Something is broken** — crashes, layout problems, anything that misbehaves.
+- **Support my ladder** — tell me which standard you run and it moves up the list.
+
+## Privacy
+
+Your experiment stays in your browser. There is no server, no account and no tracking of your work. The
+hosted site may count anonymous page views — a visit and nothing else, no IP address and no cookies — so I
+can tell whether anyone is using it. That never runs on a downloaded copy or offline. If you'd rather not be
+counted, download `index.html` and open it directly; it's the complete tool and makes no network requests at
+all.
+
+## Licence
+
+© Roman Caceres. **Free to use for research.** Not currently released under an open-source licence, so the
+code is not offered for redistribution or reuse — if you want to build on it, or need it under a specific
+licence for your institution, [ask](https://github.com/Roman-Caceres/BlotPlanner/issues) and we'll sort it out.
 
 ## For research use only
 

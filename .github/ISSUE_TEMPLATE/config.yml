@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: How the tool works, and where every number comes from
+    url: https://roman-caceres.github.io/BlotPlanner/#method
+    about: Method & sources — position sources, cut placement, and the provenance of every value.

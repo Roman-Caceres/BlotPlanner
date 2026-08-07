@@ -1,0 +1,41 @@
+name: Something is broken
+description: The tool crashed, rendered wrong, or did not do what you expected
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      placeholder: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device and browser
+      placeholder: e.g. iPhone 14 / Safari, or Windows 11 / Chrome
+    validations:
+      required: true
+  - type: dropdown
+    id: how
+    attributes:
+      label: How were you running it?
+      options:
+        - The website
+        - Installed to my home screen or desktop
+        - Downloaded index.html and opened it from disk
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Shown in the footer of the app.
+      placeholder: v1.0.0
+  - type: textarea
+    id: plan
+    attributes:
+      label: Your plan, if it helps
+      description: Optional. Save / share → Export JSON, then paste the contents here.
+      render: json

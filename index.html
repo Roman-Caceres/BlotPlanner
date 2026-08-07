@@ -398,6 +398,7 @@
   <a href="#method">Method &amp; sources</a>
   <a href="#method-controls">Loading control provenance</a>
   <a href="#method-disclaimer">Research use only</a>
+  <a href="#method-privacy">Privacy</a>
   <a href="#method-howto">How to use</a>
   <a href="https://github.com/Roman-Caceres/BlotPlanner" target="_blank" rel="noopener">Source &amp; feedback ↗</a>
   <span class="spacer"></span>
@@ -420,6 +421,7 @@
     <a href="#method-ladder">Ladder</a>
     <a href="#method-controls">Loading controls</a>
     <a href="#method-mw">Observed vs sequence MW</a>
+    <a href="#method-privacy">Privacy</a>
     <a href="#method-contact">Contact</a>
     <a href="#method-disclaimer">Disclaimer</a>
   </div>
@@ -536,6 +538,17 @@
   weight calculated from the sequence. Observed weights shift with glycosylation, phosphorylation, multimerisation,
   species and cell type. Always prefer the number on the datasheet of the antibody actually in your freezer. For
   proteins that run as a doublet or a smear, enter both bounds and the tool will protect the whole span.</p>
+
+  <h2 id="method-privacy">Privacy</h2>
+  <p><b>Your experiment never leaves your browser.</b> Targets, molecular weights, antibodies, gel settings
+  and calibration measurements are all computed locally and stored only in this browser's own storage. There
+  is no server to send them to, no account, and no sign-in. Clearing your browser data deletes them; the
+  <b>Export JSON</b> button is how you keep a copy.</p>
+  <p>The hosted site may count <b>anonymous page views</b> so it is possible to tell whether anyone is using
+  the tool. That counter records a visit and nothing else — no IP address, no cookies, and nothing about your
+  work. It never runs on a downloaded copy or when the installed app is used offline. If you would rather not
+  be counted at all, download <code>index.html</code> and open it directly; it is the complete tool and makes
+  no network requests whatsoever.</p>
 
   <h2 id="method-contact">Contact &amp; feedback</h2>
   <p>You are running <b>BlotPlanner v<span id="verInline"></span></b>. Please quote that in any bug report — the
@@ -1543,6 +1556,23 @@ if("serviceWorker" in navigator && location.protocol.startsWith("http")){
   window.addEventListener("load", ()=>{
     navigator.serviceWorker.register("sw.js").catch(()=>{ /* not hosted as a PWA; ignore */ });
   });
+}
+
+/* ---------------- anonymous page counts ----------------
+   Off until GC_CODE is set. Even then it only runs on the hosted site, so a
+   downloaded index.html — or the installed app used offline — stays completely
+   silent and makes no network request. GoatCounter stores aggregate data only,
+   no IP or User-Agent, and sets no cookies (goatcounter.com/help/gdpr).
+   It counts page views. It never sees your gel, targets, or measurements —
+   those never leave the browser under any configuration. */
+const GC_CODE = "";                                  // ← your GoatCounter code enables this
+const GC_HOSTS = ["roman-caceres.github.io"];
+if(GC_CODE && GC_HOSTS.indexOf(location.hostname) !== -1){
+  const s = document.createElement("script");
+  s.async = true;
+  s.src = "https://gc.zgo.at/count.js";
+  s.setAttribute("data-goatcounter", `https://${GC_CODE}.goatcounter.com/count`);
+  document.head.appendChild(s);
 }
 
 autoPlace();

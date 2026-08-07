@@ -1,0 +1,39 @@
+name: Support my ladder
+description: Request support for a protein standard other than Bio-Rad Precision Plus Dual Color
+title: "[ladder] "
+labels: ["ladder"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The tool currently assumes a **Bio-Rad Precision Plus Protein Dual Color** standard (#1610374).
+        Adding another ladder is mostly a matter of its band sizes, which is a short verifiable fact —
+        so these requests are easy to act on. The more people who ask for the same one, the sooner it lands.
+  - type: input
+    id: ladder
+    attributes:
+      label: Which ladder?
+      placeholder: e.g. Thermo PageRuler Plus Prestained
+    validations:
+      required: true
+  - type: input
+    id: cat
+    attributes:
+      label: Catalog number
+      placeholder: e.g. 26619
+    validations:
+      required: true
+  - type: input
+    id: link
+    attributes:
+      label: Link to the vendor page
+      description: Needed so the band sizes can be quoted from the manufacturer rather than from memory.
+      placeholder: https://...
+    validations:
+      required: true
+  - type: input
+    id: bands
+    attributes:
+      label: Band sizes, if you know them
+      description: Optional — they will be checked against the vendor page regardless.
+      placeholder: e.g. 250, 130, 100, 70, 55, 35, 25, 15, 10 kDa

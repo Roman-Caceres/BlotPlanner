@@ -1,0 +1,1552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Western Blot Membrane Cut Planner</title>
+<meta name="description" content="Plan where to cut a western blot membrane so one transfer serves multiple antibodies.">
+<meta name="theme-color" content="#1f6fd0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#14171a" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="BlotPlanner">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>
+  :root{
+    --bg:#f6f7f9; --panel:#ffffff; --ink:#16191d; --muted:#5c6570;
+    --line:#dfe3e8; --accent:#1f6fd0; --pink:#e8258f; --warn:#b45309;
+    --warnbg:#fef6e7; --err:#b02a37; --errbg:#fdf0f1; --ok:#166534; --okbg:#eefaf1;
+    --gel:#eef1f4; --strip:#ffffff;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#14171a; --panel:#1c2024; --ink:#e8eaed; --muted:#9aa4af;
+      --line:#2e343a; --gel:#22272c; --strip:#1c2024;
+      --warnbg:#33280f; --errbg:#3a1d20; --okbg:#132b1c;
+    }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  header{padding:18px 22px 10px;border-bottom:1px solid var(--line);background:var(--panel)}
+  h1{margin:0 0 4px;font-size:19px;letter-spacing:-0.01em}
+  .sub{color:var(--muted);font-size:12.5px}
+  .banner{margin:12px 22px 0;padding:10px 13px;border-radius:7px;font-size:12.5px;
+    background:var(--warnbg);border:1px solid #d9a441;color:var(--ink)}
+  .banner b{color:var(--warn)}
+  .banner summary{cursor:pointer;color:var(--ink);font-size:12.5px;list-style-position:outside}
+  .banner[open] summary{margin-bottom:7px;padding-bottom:5px;border-bottom:1px solid rgba(180,83,9,.3)}
+  .wrap{display:grid;grid-template-columns:minmax(320px,380px) 1fr;gap:18px;padding:16px 22px 60px;align-items:start}
+  @media (max-width:980px){.wrap{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:14px 15px;margin-bottom:14px}
+  .card h2{margin:0 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+  label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
+  input,select,button,textarea{font:inherit;color:var(--ink)}
+  input[type=text],input[type=number],select,textarea{
+    width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:5px;background:var(--bg)}
+  .row{display:flex;gap:8px}.row>*{flex:1;min-width:0}
+  button{cursor:pointer;background:var(--accent);color:#fff;border:0;border-radius:6px;padding:7px 12px;font-size:13px}
+  button.ghost{background:transparent;color:var(--accent);border:1px solid var(--line)}
+  button.mini{padding:3px 8px;font-size:12px}
+  button.danger{background:transparent;color:var(--err);border:1px solid var(--line)}
+  .seg{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+  .seg button{flex:1;background:transparent;color:var(--muted);border-radius:0;font-size:12.5px;padding:7px 4px}
+  .seg button.on{background:var(--accent);color:#fff}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th,td{text-align:left;padding:5px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.04em}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+  .tgt{border:1px solid var(--line);border-radius:7px;padding:9px 10px;margin-bottom:8px;background:var(--bg)}
+  .tgt .hd{display:flex;align-items:center;gap:7px;margin-bottom:6px}
+  .swatch{width:13px;height:13px;border-radius:3px;flex:none;border:1px solid rgba(0,0,0,.25)}
+  .tgt .hd input[type=text]{flex:1}
+  .note{font-size:11.5px;color:var(--muted);margin-top:6px}
+  /* compact one-line helper text; long-form explanation lives on the Method page */
+  .hint{font-size:11.5px;color:var(--muted);margin-top:7px;line-height:1.45}
+  .hint a,.lnk{color:var(--accent);text-decoration:none;border-bottom:1px solid transparent}
+  .hint a:hover,.lnk:hover{border-bottom-color:currentColor}
+  .h2row{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:10px}
+  .h2row h2{margin:0}
+  .why{font-size:11.5px;color:var(--accent);text-decoration:none;white-space:nowrap}
+  .why:hover{text-decoration:underline}
+
+  /* ---------- Method page ---------- */
+  .footbar{border-top:1px solid var(--line);background:var(--panel);padding:16px 22px 22px;
+    display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;font-size:12.5px;color:var(--muted)}
+  .footbar a{color:var(--accent);text-decoration:none;font-weight:500}
+  .footbar a:hover{text-decoration:underline}
+  .footbar .spacer{flex:1}
+  .docs{max-width:720px;margin:0 auto;padding:22px 22px 70px;font-size:14px;line-height:1.65}
+  .docs h2{font-size:18px;margin:34px 0 10px;letter-spacing:-0.01em}
+  .docs h2:first-of-type{margin-top:8px}
+  .docs h3{font-size:14px;margin:20px 0 6px;color:var(--ink)}
+  .docs p{margin:0 0 12px;color:var(--ink)}
+  .docs ul{margin:0 0 12px;padding-left:20px}
+  .docs li{margin-bottom:5px}
+  .docs .lead{color:var(--muted);font-size:13.5px;margin-bottom:22px}
+  .docs table{margin:6px 0 16px;font-size:13px}
+  .docs .callout{background:var(--warnbg);border:1px solid #d9a441;border-radius:8px;
+    padding:12px 14px;margin:14px 0;font-size:13px}
+  .docs .callout.plain{background:var(--bg);border-color:var(--line)}
+  .back{display:inline-flex;align-items:center;gap:6px;color:var(--accent);text-decoration:none;
+    font-size:13px;font-weight:500;margin-bottom:6px}
+  .back:hover{text-decoration:underline}
+  .toc{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0 26px}
+  .toc a{font-size:12px;padding:5px 11px;border:1px solid var(--line);border-radius:14px;
+    color:var(--accent);text-decoration:none;background:var(--panel)}
+  .toc a:hover{border-color:var(--accent)}
+
+  /* first-run guidance — shown once, then dismissed for good */
+  .firstrun{margin:12px 22px 0;padding:11px 14px;border-radius:8px;background:var(--panel);
+    border:1px solid var(--accent);font-size:12.5px;display:flex;align-items:flex-start;gap:10px}
+  .firstrun ol{margin:5px 0 0;padding-left:18px}
+  .firstrun li{margin-bottom:2px}
+  .firstrun .x{margin-left:auto;flex:none;background:transparent;border:0;color:var(--muted);
+    font-size:15px;cursor:pointer;padding:0 2px;line-height:1}
+  .ver{font-size:11.5px;color:var(--muted)}
+
+  /* only on paper: the printed cut list is what goes to the bench, so the
+     warning and the position source have to survive printing */
+  .printonly{display:none}
+  @media print{
+    .printonly{display:block;margin-top:14px;padding:9px 11px;border:1px solid #999;
+      border-radius:6px;font-size:11px;line-height:1.5;color:#000}
+  }
+  .flag{padding:7px 10px;border-radius:6px;font-size:12.5px;margin:6px 0}
+  .flag.err{background:var(--errbg);border:1px solid var(--err)}
+  .flag.warn{background:var(--warnbg);border:1px solid #d9a441}
+  .flag.ok{background:var(--okbg);border:1px solid #4ca771}
+  .stripcard{border:1px solid var(--line);border-left:5px solid var(--accent);border-radius:7px;
+    padding:10px 12px;margin-bottom:9px;background:var(--panel)}
+  .stripcard h3{margin:0 0 3px;font-size:14px}
+  .stripcard .meta{font-size:12px;color:var(--muted)}
+  .chips{margin-top:6px;display:flex;flex-wrap:wrap;gap:5px}
+  .chip{font-size:11.5px;padding:2px 7px;border-radius:11px;border:1px solid var(--line);background:var(--bg)}
+  svg{display:block;max-width:100%;height:auto;overflow:visible;margin:0 auto}
+  .gelbox{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:12px;overflow-x:auto}
+  /* touch-action:none keeps the page from scrolling while a cut line is dragged */
+  .cuthandle{cursor:ns-resize;touch-action:none}
+  .cutdel{touch-action:none}
+  .tblwrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  details summary{cursor:pointer;color:var(--accent);font-size:12.5px;margin-top:6px}
+  code{background:var(--bg);padding:1px 4px;border-radius:3px;font-size:12px}
+  .foot{padding:0 22px 40px;color:var(--muted);font-size:12px;max-width:900px}
+  .rowdel{background:transparent;color:var(--err);border:1px solid var(--line);
+    border-radius:5px;padding:2px 8px;font-size:12px;line-height:1.4}
+
+  /* Cut list. A six-column table for one or two cuts was mostly chrome; this puts
+     the millimetre value — the only number you act on — first and large. */
+  .cuts{list-style:none;margin:0;padding:0}
+  .cuts li{display:grid;grid-template-columns:auto auto 1fr auto;align-items:center;
+    gap:2px 12px;padding:9px 2px;border-bottom:1px solid var(--line)}
+  .cuts li:last-of-type{border-bottom:0}
+  .cutn{width:21px;height:21px;flex:none;border-radius:50%;background:var(--bg);
+    border:1px solid var(--line);display:grid;place-items:center;
+    font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .cutmm{font-size:17px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-0.01em}
+  .cutmm small{font-size:11.5px;font-weight:400;color:var(--muted);margin-left:3px}
+  .cutmark{font-size:12.5px;color:var(--muted);min-width:0}
+  @media (max-width:700px){
+    /* landmark drops to its own line; the cells are placed explicitly so the
+       delete button stays on row 1 instead of being pushed to a third row */
+    .cuts li{grid-template-columns:auto 1fr auto}
+    .cutn{grid-area:1/1}
+    .cutmm{grid-area:1/2;font-size:19px}
+    .cuts li .rowdel{grid-area:1/3}
+    .cutmark{grid-area:2/1/3/-1;margin-left:33px}
+  }
+
+  /* ---------- responsive ---------- */
+  @media (max-width:980px){
+    .wrap{grid-template-columns:1fr;padding:12px 12px 48px;gap:12px}
+    /* the gel and cut list are what you look at on a phone — put them first,
+       controls below. On desktop the source order (controls first) is kept. */
+    .output{order:1}
+    .controls{order:2}
+    header{padding:14px 14px 8px}
+    .banner{margin:10px 12px 0}
+    .foot{padding:0 14px 32px}
+  }
+  @media (max-width:700px){
+    h1{font-size:17px}
+    .sub{font-size:12px}
+    /* 16px stops iOS Safari zooming the whole page when a field gains focus */
+    input[type=text],input[type=number],select{font-size:16px;padding:9px 10px}
+    button{padding:10px 14px;font-size:14px;min-height:44px}
+    button.mini{padding:8px 11px;font-size:13px;min-height:40px}
+    .seg button{min-height:46px;font-size:13px;padding:7px 3px}
+    .rowdel{min-height:36px;padding:4px 12px}
+    input[type=checkbox]{width:20px;height:20px}
+    .tgt{padding:11px 12px}
+    .swatch{width:16px;height:16px}
+    table{font-size:13px}
+    th,td{padding:7px 6px}
+    .card{padding:13px 13px}
+    .gelbox{padding:8px 6px}
+  }
+  /* keep content clear of notches and home indicators */
+  @supports(padding:max(0px)){
+    header,.wrap,.banner,.foot{
+      padding-left:max(12px,env(safe-area-inset-left));
+      padding-right:max(12px,env(safe-area-inset-right));
+    }
+    body{padding-bottom:env(safe-area-inset-bottom)}
+  }
+  @media print{
+    body{background:#fff}
+    .noprint{display:none !important}
+    #docView{display:none !important}
+    #appView{display:block !important}
+    .wrap{grid-template-columns:1fr;padding:0}
+    .output{order:0}.controls{order:0}
+    .card,.gelbox,.stripcard{break-inside:avoid;border-color:#bbb}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Western Blot Membrane Cut Planner</h1>
+  <div class="sub">Plan horizontal cuts on a single PVDF membrane so one transfer serves multiple antibodies.
+  Ladder: Bio-Rad Precision Plus Protein Dual Color (#1610374).</div>
+</header>
+
+<noscript>
+  <div class="banner" style="display:block;border-color:var(--err)">
+    <b>JavaScript is required.</b> Every band position is computed in your browser — nothing is calculated on a
+    server — so the planner cannot run with scripting disabled. No data is sent anywhere either way.
+  </div>
+</noscript>
+
+<div id="appView">
+
+<div class="firstrun noprint" id="firstRun" hidden>
+  <div>
+    <b>First time here?</b>
+    <ol>
+      <li>Set your gel percentage and resolving gel length under <b>Gel</b>.</li>
+      <li>Add your proteins under <b>Targets</b>, and a <b>Loading control</b> from the same fraction.</li>
+      <li>Press <b>Auto-place cuts</b>, then read the millimetre positions under <b>Cuts</b>.</li>
+    </ol>
+    <div style="margin-top:6px">Before you cut for real, switch <b>Position source</b> to <b>Calibrated</b> and
+    enter ladder distances measured off your own Ponceau — <a href="#method-howto">full guide</a>.</div>
+  </div>
+  <button class="x" id="firstRunX" aria-label="Dismiss this guidance" title="Dismiss">✕</button>
+</div>
+
+<div class="wrap">
+
+<!-- ============ LEFT: CONTROLS ============ -->
+<div class="noprint controls">
+
+  <div class="card">
+    <h2>1 · Gel</h2>
+    <label for="gelPct">Acrylamide %</label>
+    <select id="gelPct">
+      <option value="15">15% — resolves 10–40 kDa</option>
+      <option value="12" selected>12% — resolves 20–80 kDa</option>
+      <option value="10">10% — resolves 40–120 kDa</option>
+      <option value="8">8% — resolves 60–200 kDa</option>
+      <option value="custom">Custom resolving range…</option>
+    </select>
+    <div id="customRange" style="display:none">
+      <div class="row">
+        <div><label for="cLo">Low kDa</label><input type="number" id="cLo" value="20" min="1" step="1" inputmode="decimal"></div>
+        <div><label for="cHi">High kDa</label><input type="number" id="cHi" value="80" min="2" step="1" inputmode="decimal"></div>
+      </div>
+    </div>
+    <div class="row">
+      <div><label for="gelH">Resolving gel length (mm)</label><input type="number" id="gelH" value="60" min="20" max="200" step="1" inputmode="decimal"></div>
+      <div><label for="lanes">Sample lanes</label><input type="number" id="lanes" value="9" min="1" max="20" step="1" inputmode="numeric"></div>
+    </div>
+    <div class="hint">Length runs from the top of the resolving gel to the dye front.</div>
+  </div>
+
+  <div class="card">
+    <div class="h2row">
+      <h2>2 · Position source</h2>
+      <a class="why" href="#method-positions">Which should I use?</a>
+    </div>
+    <div class="seg" id="modeSeg">
+      <button data-mode="model" class="on">Model</button>
+      <button data-mode="chart">Bio-Rad chart</button>
+      <button data-mode="calibrated">Calibrated</button>
+    </div>
+    <div id="chartPane" style="display:none">
+      <label for="chartGel">Chart column (Criterion Tris-HCl)</label>
+      <select id="chartGel">
+        <option value="5">5%</option>
+        <option value="7.5">7.5%</option>
+        <option value="10">10%</option>
+        <option value="12.5" selected>12.5%</option>
+        <option value="15">15%</option>
+        <option value="18">18%</option>
+        <option value="4-15">4–15% gradient</option>
+        <option value="4-20">4–20% gradient</option>
+        <option value="8-16">8–16% gradient</option>
+        <option value="10-20">10–20% gradient</option>
+        <option value="10.5-14">10.5–14% gradient</option>
+      </select>
+      <div id="chartCaveat"></div>
+    </div>
+    <div id="calibPane" style="display:none">
+      <div class="hint" style="margin-top:10px">
+        Measure each ladder band on your Ponceau photo, from the top of the resolving gel. Two minimum;
+        blanks ignored.
+      </div>
+      <div class="tblwrap"><table style="margin-top:8px">
+        <thead><tr><th style="width:34px" title="include this band in the fit">Fit</th><th>Band</th><th class="num" style="width:110px">Distance (mm)</th></tr></thead>
+        <tbody id="calibRows"></tbody>
+      </table></div>
+      <div id="fitOut" style="margin-top:8px"></div>
+      <div class="row" style="margin-top:6px">
+        <button class="ghost mini" id="fitRange">Fit working range</button>
+        <button class="ghost mini" id="fitAll">Fit all entered</button>
+        <button class="ghost mini" id="clearCalib">Clear</button>
+      </div>
+      <div class="hint">Low R²? Untick bands outside this gel's resolving range and refit —
+      <a href="#method-positions">why</a>.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="h2row">
+      <h2>3 · Cutting constraints</h2>
+      <a class="why" href="#method-cuts">How cuts are placed</a>
+    </div>
+    <div class="row">
+      <div><label for="minStrip" title="Strips must stay big enough to handle with forceps and lie flat in a tray">Min strip height (mm)</label><input type="number" id="minStrip" value="10" min="2" step="0.5" inputmode="decimal"></div>
+      <div><label for="clearance" title="Margin kept above and below each band so a slightly-off blade never bisects a signal">Band clearance (mm)</label><input type="number" id="clearance" value="3" min="0" step="0.5" inputmode="decimal"></div>
+    </div>
+    <div style="margin-top:12px" class="row">
+      <button id="autoCut">Auto-place cuts</button>
+      <button class="ghost" id="addCut">Add cut</button>
+    </div>
+    <div class="hint">Drag a dashed red line to move a cut; delete it from the cut list.</div>
+  </div>
+
+  <div class="card">
+    <div class="h2row">
+      <h2>4 · Targets</h2>
+      <a class="why" href="#method-mw">Which MW?</a>
+    </div>
+    <div id="targets"></div>
+    <button id="addTgt" style="margin-top:8px;width:100%">+ Add blank target</button>
+    <div class="hint">Use the <b>observed</b> MW from the datasheet. Doublet or smear? Enter both bounds.</div>
+  </div>
+
+  <div class="card">
+    <div class="h2row">
+      <h2>Loading controls</h2>
+      <a class="why" href="#method-controls">Sources</a>
+    </div>
+    <div class="hint" style="margin-top:0;margin-bottom:4px">Pick one from the <b>same fraction</b> as your target.</div>
+    <div id="presetPane"></div>
+  </div>
+
+  <div class="card">
+    <h2>5 · Save / share</h2>
+    <div class="row">
+      <button class="ghost mini" id="saveLS">Save to browser</button>
+      <button class="ghost mini" id="loadLS">Restore</button>
+    </div>
+    <div class="row" style="margin-top:6px">
+      <button class="ghost mini" id="expJSON">Export JSON</button>
+      <button class="ghost mini" id="impJSON">Import JSON</button>
+      <button class="ghost mini" id="printBtn">Print / PDF</button>
+    </div>
+    <button class="ghost mini" id="wakeBtn" hidden style="margin-top:6px;width:100%">Keep screen on</button>
+    <input type="file" id="fileIn" accept=".json,application/json" style="display:none">
+  </div>
+
+</div>
+
+<!-- ============ RIGHT: OUTPUT ============ -->
+<div class="output">
+  <div class="gelbox">
+    <div id="svgHost"></div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <div class="h2row">
+      <h2>Cuts</h2>
+      <span class="why" style="color:var(--muted)">from the top of the resolving gel</span>
+    </div>
+    <div id="cutList"></div>
+  </div>
+
+  <div class="card">
+    <h2>Strips</h2>
+    <div id="strips"></div>
+  </div>
+
+  <div class="card">
+    <h2>Checks</h2>
+    <div id="flags"></div>
+  </div>
+
+  <!-- paper only: the printed sheet is what goes to the bench, so it must carry
+       the warning and say which position source produced these numbers -->
+  <div class="printonly" id="printNote"></div>
+</div>
+
+</div>
+
+<div class="footbar noprint">
+  <a href="#method">Method &amp; sources</a>
+  <a href="#method-controls">Loading control provenance</a>
+  <a href="#method-disclaimer">Research use only</a>
+  <a href="#method-howto">How to use</a>
+  <a href="https://github.com/Roman-Caceres/BlotPlanner" target="_blank" rel="noopener">Source &amp; feedback ↗</a>
+  <span class="spacer"></span>
+  <span>Verify every cut against your own stained membrane.</span>
+  <span class="ver" id="verLabel"></span>
+</div>
+</div><!-- /#appView -->
+
+<!-- ============ METHOD PAGE ============ -->
+<div id="docView" hidden>
+<div class="docs">
+  <a class="back" href="#">← Back to the planner</a>
+  <h1 style="font-size:22px;margin:6px 0 6px">Method &amp; sources</h1>
+  <div class="lead">Where every number in this tool comes from, and how far to trust it.</div>
+
+  <div class="toc">
+    <a href="#method-howto">How to use</a>
+    <a href="#method-positions">Position sources</a>
+    <a href="#method-cuts">Cut placement</a>
+    <a href="#method-ladder">Ladder</a>
+    <a href="#method-controls">Loading controls</a>
+    <a href="#method-mw">Observed vs sequence MW</a>
+    <a href="#method-contact">Contact</a>
+    <a href="#method-disclaimer">Disclaimer</a>
+  </div>
+
+  <h2 id="method-howto">How to use</h2>
+  <p>The planner assumes a <b>Bio-Rad Precision Plus Protein Dual Color</b> ladder (#1610374). If you run a
+  different ladder its band sizes will not match, and the positions will be wrong — see the caution at the end of
+  this section.</p>
+
+  <h3>Planning a blot</h3>
+  <ol>
+    <li><b>Gel.</b> Set the acrylamide percentage and the resolving gel length in millimetres — measured from the
+    top of the resolving gel, below the stacking gel you cut away, down to the dye front.</li>
+    <li><b>Targets.</b> Add each protein by its <b>observed</b> molecular weight, taken from the antibody
+    datasheet. Add a <b>loading control</b> from the same subcellular fraction as your target.</li>
+    <li><b>Cuts.</b> Press <b>Auto-place cuts</b>. The tool puts a cut midway between targets, keeping your band
+    clearance, and refuses to create strips below your minimum height. Drag any cut to override it.</li>
+    <li><b>Read the Checks panel.</b> This is the part worth your attention — it flags targets too close to
+    separate, cuts that would bisect a band, and same-host primaries sharing a strip.</li>
+  </ol>
+
+  <h3>Before you actually cut</h3>
+  <ol>
+    <li>Run the gel and transfer as normal, then <b>Ponceau-stain the membrane and photograph it</b>.</li>
+    <li>Lay a ruler on the photo and measure each visible ladder band, from the top of the resolving gel.</li>
+    <li>Switch <b>Position source</b> to <b>Calibrated</b> and type those distances in. Two bands minimum; more
+    is better. Press <b>Fit working range</b>.</li>
+    <li>Check R². Above 0.99 is good. If it is low, untick bands outside the gel's resolving range and refit —
+    ladders stop being log-linear at the extremes.</li>
+    <li>Now re-read the cut positions. Mark them with pencil on the membrane edge and cut against a ruler with a
+    fresh blade. Keep an orientation notch in a known corner.</li>
+  </ol>
+
+  <div class="callout"><b>Using a different ladder?</b> The band sizes throughout — including the rows in the
+  calibration table — are those of Precision Plus Dual Color. With another ladder (PageRuler, for instance) the
+  labels will not correspond to your bands, and typing measurements against them will produce confidently wrong
+  positions. Support for other ladders is planned;
+  <a href="https://github.com/Roman-Caceres/BlotPlanner/issues" target="_blank" rel="noopener">say which one you
+  use</a> and it moves up the list.</div>
+
+  <h2 id="method-positions">Position sources</h2>
+  <p>Band positions come from one of three sources. Only the last is grounded in your gel, and the tool always
+  shows which one is active.</p>
+
+  <h3>1 · Model — an estimate</h3>
+  <p>Rf is taken as linear in log<sub>10</sub>(MW) across the gel's resolving range, the standard SDS-PAGE
+  relationship, anchored so the top of the range sits at Rf 0.15 and the bottom at Rf 0.85, then passed through a
+  logistic squash (k = 4) so proteins outside the range compress toward the well or the dye front instead of
+  leaving the gel. The ranges used — 15% = 10–40, 12% = 20–80, 10% = 40–120, 8% = 60–200 kDa — are conventional
+  rule-of-thumb figures for handcast Tris-glycine gels.</p>
+  <div class="callout">This mode is a <b>construction, not vendor data</b>. It exists to give you a sane starting
+  layout before you have a gel to measure.</div>
+
+  <h3>2 · Bio-Rad chart — real vendor data, wrong ladder</h3>
+  <p>Rf values measured by pixel analysis of Bio-Rad's published
+  <a href="https://www.bio-rad.com/en-us/category/protein-gel-migration-charts?ID=N3F3TIDN">Criterion Tris-HCl
+  migration chart</a>, normalised as (band − well bottom) / (gel bottom − well bottom), across all eleven columns.
+  Between tabulated bands the tool interpolates linearly in log<sub>10</sub>(MW); beyond them it extrapolates and
+  says so. A band missing from a column means Bio-Rad's chart does not show it — it has run off that gel.</p>
+  <div class="callout"><b>Three caveats that matter:</b>
+    <ul style="margin:8px 0 0">
+      <li>Bio-Rad states these are Precision Plus Protein <b>unstained</b> standards. #1610374 Dual Color is
+      <b>prestained</b>. Dual Color is engineered to land at its printed MW on a Laemmli gel so the two should be
+      close — but that is an inference, not a measurement.</li>
+      <li>The chart is for <b>precast midi</b> Criterion gels, not handcast mini Tris-glycine. Rf normalises out
+      gel length but not chemistry or casting.</li>
+      <li>Positions were read off a schematic drawing, not densitometry.</li>
+    </ul>
+    <p style="margin:8px 0 0">The chart also has no 8% or 12% column, so those recipes map to the nearest
+    available 7.5% and 12.5%.</p>
+  </div>
+
+  <h3>3 · Calibrated — your gel</h3>
+  <p>Discards every model above and fits distance = A + B·log<sub>10</sub>(MW) by ordinary least squares to
+  distances you measured off your own Ponceau, reporting R² and residuals, with per-band control over what enters
+  the fit.</p>
+  <p>Real ladders stop being log-linear at the extremes — the largest and smallest bands compress. Including them
+  drags the fitted line and worsens the prediction exactly where your targets sit. If R² is low, untick the bands
+  outside the gel's resolving range and refit.</p>
+  <div class="callout"><b>This is the only mode grounded in the membrane you are about to cut.</b> Use it before
+  you score anything.</div>
+
+  <h2 id="method-cuts">Cut placement</h2>
+  <p>Each target gets a protected zone: its band extent plus your band-clearance margin above and below. Targets
+  whose zones overlap cannot be separated and are merged into one strip. Cuts are then placed midway between
+  consecutive zones, and any cut that would leave a strip shorter than your minimum height is dropped.</p>
+  <p>Cut positions are reported in millimetres from the top of the resolving gel, and also relative to the nearest
+  ladder band — easier to use at the bench than a ruler origin. Drag any cut on the gel to override it.</p>
+
+  <h2 id="method-ladder">Ladder</h2>
+  <p>Bio-Rad Precision Plus Protein Dual Color Standards
+  <a href="https://www.bio-rad.com/en-us/sku/1610374-precision-plus-protein-dual-color-standards-500-ul?ID=1610374">#1610374</a>:
+  ten bands at 250, 150, 100, 75, 50, 37, 25, 20, 15 and 10 kDa. The 75 and 25 kDa bands are pink, the other eight
+  blue. Band identities were confirmed against the vendor product image.</p>
+
+  <h2 id="method-controls">Loading control provenance</h2>
+  <p>Every preset molecular weight was read from that antibody's own
+  <a href="https://www.cellsignal.com/">Cell Signaling Technology</a> product page, from the "MW (kDa)"
+  specification field, and is quoted verbatim. Each button's tooltip carries the catalog number the value came
+  from, so any of them can be rechecked at <code>cellsignal.com/products/&lt;cat&gt;/datasheet</code>.
+  <b>None were written from memory.</b></p>
+  <div class="callout">CST's own summary table in their loading-control blog post <b>disagrees with their product
+  pages</b> in three places: it lists β-Tubulin at 35 kDa and Profilin-1 at 9/5 kDa, where the datasheets say
+  <b>55</b> and <b>15</b>; and it gives α-Actinin's catalog number as 64887, which does not resolve — the real
+  product is <b>#6487</b> (100 kDa). This tool follows the product pages in every case.</div>
+  <p>Where a datasheet lists two bands — Lamin B1 68 and 45, Lamin A/C 70 and 28, Caveolin-1 21 and 24 — the preset
+  uses the full-length species and the tooltip names the other, because a cleavage product you didn't plan for is a
+  good way to lose a strip.</p>
+  <p>Controls are grouped by subcellular fraction. Pick one from the same fraction as your target — a cytoplasmic
+  control says nothing about loading in a nuclear prep.</p>
+
+  <h2 id="method-mw">Observed vs sequence MW</h2>
+  <p>Enter the <b>observed</b> molecular weight — what the vendor says you will actually see on a blot — not the
+  weight calculated from the sequence. Observed weights shift with glycosylation, phosphorylation, multimerisation,
+  species and cell type. Always prefer the number on the datasheet of the antibody actually in your freezer. For
+  proteins that run as a doublet or a smear, enter both bounds and the tool will protect the whole span.</p>
+
+  <h2 id="method-contact">Contact &amp; feedback</h2>
+  <p>You are running <b>BlotPlanner v<span id="verInline"></span></b>. Please quote that in any bug report — the
+  footer of any printout and any exported plan carries it too.</p>
+  <p>Built by <a href="https://github.com/Roman-Caceres" target="_blank" rel="noopener">Roman Caceres</a>
+  (<code>@Roman-Caceres</code>). Source code, version history and updates live at
+  <a href="https://github.com/Roman-Caceres/BlotPlanner" target="_blank" rel="noopener">github.com/Roman-Caceres/BlotPlanner</a>.</p>
+  <div class="callout plain"><b>Found a number that looks wrong?</b> Please
+  <a href="https://github.com/Roman-Caceres/BlotPlanner/issues" target="_blank" rel="noopener">open an issue</a>.
+  Corrections to molecular weights or migration data are the most useful feedback this tool can get — every value
+  here carries a source, so a disagreement can be settled against the datasheet rather than argued.</div>
+  <p>Bug reports, requests for other ladders, and notes on what the tool got wrong at your bench are all welcome
+  through the same link.</p>
+
+  <h2 id="method-disclaimer">For research use only</h2>
+  <p>This is a planning aid, not a measurement. It is provided as-is, without warranty of any kind, and the author
+  accepts no liability for experimental loss arising from its use. <b>Verify every cut position against your own
+  stained membrane before scoring it.</b></p>
+  <p>Bio-Rad, Precision Plus Protein, Cell Signaling Technology and all product names are trademarks of their
+  respective owners. This tool is independent and is not endorsed by, affiliated with, or produced in partnership
+  with any of them.</p>
+
+  <a class="back" href="#" style="margin-top:26px">← Back to the planner</a>
+</div>
+</div>
+
+<script>
+"use strict";
+
+/* Bump on every released change. Shown in the footer, written into exported
+   plans and onto printouts, so a bug report can be tied to a specific build. */
+const APP_VERSION = "1.0.0";
+
+/* ---------- ladder: 10 bands, pink at 75 and 25 (Bio-Rad #1610374) ---------- */
+const LADDER = [250,150,100,75,50,37,25,20,15,10];
+const PINK = new Set([75,25]);
+
+/* resolving ranges quoted from 3. Protocols/Western Blot.md gel-selection table */
+const RANGES = {"15":[10,40], "12":[20,80], "10":[40,120], "8":[60,200]};
+
+/* ------------------------------------------------------------------
+   Rf measured off Bio-Rad's published Criterion Tris-HCl migration chart
+   (bio-rad.com/en-us/category/protein-gel-migration-charts, image
+   criterion-tris-hci-midi-gels.png). Band centres were located by pixel
+   analysis of that chart and normalised as
+       Rf = (y_band - y_wellBottom) / (y_gelBottom - y_wellBottom).
+   A missing entry means Bio-Rad's chart does not show that band on that
+   gel — i.e. it has run off the end.
+   THREE CAVEATS, all stated by Bio-Rad or forced by the source:
+     1. The chart is for Precision Plus Protein *UNSTAINED* standards.
+        Roman runs Dual Color (PRESTAINED) #1610374. Dual Color bands are
+        engineered so apparent MW matches the printed label on a Laemmli
+        gel, so the two should land close — but that is an inference, not
+        a measurement, and prestained migration is known to shift.
+     2. Criterion midi PRECAST Tris-HCl, not handcast mini Tris-glycine.
+        Rf normalises out gel length but not chemistry or casting.
+     3. Values were read off a schematic drawing, not densitometry.
+   ------------------------------------------------------------------ */
+const BIORAD_RF = {
+  "5":       {250:0.336,150:0.510,100:0.716,75:0.882},
+  "7.5":     {250:0.237,150:0.331,100:0.449,75:0.556,50:0.749,37:0.909},
+  "10":      {250:0.206,150:0.244,100:0.314,75:0.382,50:0.510,37:0.640,25:0.838},
+  "12.5":    {250:0.160,150:0.199,100:0.232,75:0.283,50:0.377,37:0.460,25:0.691,20:0.806,15:0.928},
+  "15":      {250:0.135,150:0.161,100:0.183,75:0.224,50:0.276,37:0.358,25:0.484,20:0.607,15:0.714,10:0.833},
+  "18":      {250:0.120,150:0.142,100:0.169,75:0.195,50:0.233,37:0.286,25:0.397,20:0.494,15:0.573,10:0.664},
+  "4-15":    {250:0.233,150:0.291,100:0.374,75:0.455,50:0.569,37:0.661,25:0.779,20:0.867,15:0.947,10:0.987},
+  "4-20":    {250:0.247,150:0.314,100:0.392,75:0.434,50:0.513,37:0.595,25:0.689,20:0.740,15:0.791,10:0.826},
+  "8-16":    {250:0.193,150:0.215,100:0.235,75:0.273,50:0.332,37:0.393,25:0.536,20:0.659,15:0.817,10:0.882},
+  "10-20":   {250:0.208,150:0.230,100:0.250,75:0.288,50:0.349,37:0.408,25:0.545,20:0.668,15:0.797,10:0.832},
+  "10.5-14": {250:0.114,150:0.186,100:0.233,75:0.288,50:0.358,37:0.421,25:0.536,20:0.618,15:0.693,10:0.756}
+};
+/* nearest chart column for each percentage in Roman's own casting table */
+const CHART_FOR_PCT = {"8":"7.5", "10":"10", "12":"12.5", "15":"15"};
+
+/* ------------------------------------------------------------------
+   Loading controls. Every MW below was read off that antibody's own
+   Cell Signaling Technology product page / datasheet ("MW (kDa)" field)
+   and is quoted verbatim — not recalled, not inferred.
+   The catalog number next to each entry is the page the value came from:
+   cellsignal.com/products/<cat>/datasheet
+   Note: CST's summary table in their loading-control blog post disagrees
+   with several of these product pages. It shows beta-Tubulin at 35 and
+   Profilin-1 at 9/5 (datasheets: 55 and 15), and gives alpha-Actinin's
+   catalog number as 64887, which does not resolve — the real product is
+   #6487. The product pages win in every case.
+   ------------------------------------------------------------------ */
+const LOADING_CONTROLS = [
+  {g:"Whole cell / cytoplasmic", items:[
+    {name:"Vinculin",     lo:124, hi:124, cat:"13901", host:"Rabbit", note:"also cytoskeletal"},
+    {name:"HSP90",        lo:90,  hi:90,  cat:"4877",  host:"Rabbit"},
+    {name:"HSP70",        lo:70,  hi:70,  cat:"4876",  host:"Rabbit"},
+    {name:"β-Actin",      lo:45,  hi:45,  cat:"4970",  host:"Rabbit", note:"mouse 8H10D10 = #3700"},
+    {name:"GAPDH",        lo:37,  hi:37,  cat:"5174",  host:"Rabbit"}
+  ]},
+  {g:"Cytoskeletal", items:[
+    {name:"Myosin IIb",   lo:230, hi:230, cat:"8824",  host:"Rabbit"},
+    {name:"α-Actinin",    lo:100, hi:100, cat:"6487",  host:"Rabbit"},
+    {name:"β-Tubulin",    lo:55,  hi:55,  cat:"2128",  host:"Rabbit"},
+    {name:"α-Tubulin",    lo:52,  hi:52,  cat:"2125",  host:"Rabbit", note:"mouse DM1A = #3873"},
+    {name:"Cofilin",      lo:19,  hi:19,  cat:"5175",  host:"Rabbit"},
+    {name:"Profilin-1",   lo:15,  hi:15,  cat:"3246",  host:"Rabbit"}
+  ]},
+  {g:"Nuclear", items:[
+    {name:"Lamin A/C",    lo:70,  hi:70,  cat:"2032",  host:"Rabbit", note:"datasheet lists 28 and 70 — 28 kDa is a cleaved fragment"},
+    {name:"Lamin B1",     lo:68,  hi:68,  cat:"13435", host:"Rabbit", note:"datasheet lists 68 and 45 — 45 kDa is the apoptotic cleavage product"},
+    {name:"HDAC1",        lo:62,  hi:62,  cat:"34589", host:"Rabbit"},
+    {name:"TBP",          lo:35,  hi:45,  cat:"44059", host:"Rabbit", note:"datasheet states a 35–45 range"},
+    {name:"PCNA",         lo:36,  hi:36,  cat:"13110", host:"Rabbit"},
+    {name:"Histone H3",   lo:17,  hi:17,  cat:"4499",  host:"Rabbit"}
+  ]},
+  {g:"Mitochondrial", items:[
+    {name:"HSP60",        lo:60,  hi:60,  cat:"12165", host:"Rabbit", note:"also whole-cell"},
+    {name:"VDAC",         lo:32,  hi:32,  cat:"4661",  host:"Rabbit"},
+    {name:"COX IV",       lo:17,  hi:17,  cat:"4850",  host:"Rabbit"}
+  ]},
+  {g:"Plasma membrane", items:[
+    {name:"Na,K-ATPase",  lo:100, hi:100, cat:"3010",  host:"Rabbit"},
+    {name:"Caveolin-1",   lo:21,  hi:24,  cat:"3267",  host:"Rabbit", note:"datasheet lists 21 and 24"}
+  ]}
+];
+
+const PALETTE = ["#1f6fd0","#e8258f","#0f9d58","#e07b00","#7b3fbf","#00929e","#c4342b","#5b6b7a"];
+
+let uid = 1;
+const state = {
+  gelPct:"12", cLo:20, cHi:80, gelH:60, lanes:9,
+  mode:"model", calib:{}, calibOff:{}, chartGel:"12.5",
+  minStrip:10, clearance:3,
+  targets:[
+    {id:uid++, name:"Your target", lo:90, hi:90, ab:"", host:"", color:PALETTE[0], on:true},
+    {id:uid++, name:"GAPDH", lo:37, hi:37, ab:"CST #5174", host:"Rabbit", color:PALETTE[2], on:true}
+  ],
+  cuts:[]           // distances in mm from top of resolving gel
+};
+
+/* ---------------- migration model ---------------- */
+const K = 4.0;                       // logistic squash steepness
+function range(){ return state.gelPct==="custom" ? [state.cLo,state.cHi] : RANGES[state.gelPct]; }
+
+function modelRf(mw){
+  const [lo,hi] = range();
+  if(!(mw>0) || !(lo>0) || !(hi>lo)) return NaN;
+  const m = (0.85-0.15)/(Math.log10(lo)-Math.log10(hi));
+  const b = 0.15 - m*Math.log10(hi);
+  const lin = m*Math.log10(mw)+b;
+  return 1/(1+Math.exp(-K*(lin-0.5)));
+}
+function modelRfInv(rf){
+  const r = Math.min(0.9995, Math.max(0.0005, rf));
+  const lin = 0.5 - Math.log(1/r - 1)/K;
+  const [lo,hi] = range();
+  const m = (0.85-0.15)/(Math.log10(lo)-Math.log10(hi));
+  const b = 0.15 - m*Math.log10(hi);
+  return Math.pow(10,(lin-b)/m);
+}
+
+/* least-squares fit of measured calibration points */
+function fit(){
+  const pts = LADDER.map(mw=>[mw, state.calib[mw]])
+                    .filter(p=>typeof p[1]==="number" && isFinite(p[1]) && !state.calibOff[p[0]]);
+  if(pts.length < 2) return null;
+  const xs = pts.map(p=>Math.log10(p[0])), ys = pts.map(p=>p[1]);
+  const n = xs.length;
+  const mx = xs.reduce((a,b)=>a+b,0)/n, my = ys.reduce((a,b)=>a+b,0)/n;
+  let sxy=0, sxx=0;
+  for(let i=0;i<n;i++){ sxy += (xs[i]-mx)*(ys[i]-my); sxx += (xs[i]-mx)**2; }
+  if(sxx === 0) return null;
+  const B = sxy/sxx, A = my - B*mx;
+  let ssr=0, sst=0;
+  for(let i=0;i<n;i++){ const p = A+B*xs[i]; ssr += (ys[i]-p)**2; sst += (ys[i]-my)**2; }
+  const r2 = sst>0 ? 1-ssr/sst : 1;
+  const resid = pts.map((p,i)=>({mw:p[0], meas:ys[i], pred:A+B*xs[i]}));
+  return {A,B,r2,n,resid};
+}
+
+let FIT = null;
+function usingCalib(){ return state.mode==="calibrated" && FIT !== null; }
+function usingChart(){ return state.mode==="chart"; }
+
+/* --- Bio-Rad chart: piecewise-linear in (log10 MW, Rf) between tabulated bands --- */
+function chartPts(){
+  const t = BIORAD_RF[state.chartGel] || {};
+  return Object.keys(t).map(Number).sort((a,b)=>b-a)
+         .map(mw=>({mw, l:Math.log10(mw), rf:t[mw]}));   // MW desc => Rf asc
+}
+/* returns {rf, extrap} where extrap = decades of MW beyond the tabulated span (0 = interpolated) */
+function chartRfInfo(mw){
+  const p = chartPts();
+  if(p.length < 2 || !(mw>0)) return null;
+  const l = Math.log10(mw);
+  for(let i=0;i<p.length-1;i++){
+    const a = p[i], b = p[i+1];
+    if(l <= a.l && l >= b.l){
+      const f = (a.l - l)/(a.l - b.l);
+      return {rf: a.rf + f*(b.rf - a.rf), extrap:0};
+    }
+  }
+  if(l > p[0].l){                                  // heavier than the top band
+    const a = p[0], b = p[1], s = (b.rf-a.rf)/(b.l-a.l);
+    return {rf: a.rf + s*(l-a.l), extrap: l - p[0].l};
+  }
+  const a = p[p.length-2], b = p[p.length-1], s = (b.rf-a.rf)/(b.l-a.l);
+  return {rf: b.rf + s*(l-b.l), extrap: p[p.length-1].l - l};
+}
+function chartInv(rf){
+  const p = chartPts();
+  if(p.length < 2) return NaN;
+  for(let i=0;i<p.length-1;i++){
+    const a = p[i], b = p[i+1];
+    if(rf >= a.rf && rf <= b.rf){
+      const f = (rf - a.rf)/(b.rf - a.rf);
+      return Math.pow(10, a.l + f*(b.l - a.l));
+    }
+  }
+  if(rf < p[0].rf){
+    const a = p[0], b = p[1], s = (b.l-a.l)/(b.rf-a.rf);
+    return Math.pow(10, a.l + s*(rf-a.rf));
+  }
+  const a = p[p.length-2], b = p[p.length-1], s = (b.l-a.l)/(b.rf-a.rf);
+  return Math.pow(10, b.l + s*(rf-b.rf));
+}
+
+/* distance in mm from top of resolving gel */
+function dist(mw){
+  if(!(mw>0)) return NaN;
+  if(usingCalib()) return FIT.A + FIT.B*Math.log10(mw);
+  if(usingChart()){ const i = chartRfInfo(mw); return i ? i.rf*state.gelH : NaN; }
+  return modelRf(mw)*state.gelH;
+}
+function distInv(mm){
+  if(usingCalib()){
+    if(FIT.B === 0) return NaN;
+    return Math.pow(10,(mm-FIT.A)/FIT.B);
+  }
+  if(usingChart()) return chartInv(mm/state.gelH);
+  return modelRfInv(mm/state.gelH);
+}
+/* ladder bands Bio-Rad actually shows on this gel — the rest have run off */
+function ladderShown(){
+  if(!usingChart()) return LADDER;
+  const t = BIORAD_RF[state.chartGel] || {};
+  return LADDER.filter(mw=>t[mw] !== undefined);
+}
+
+const f1 = x => (Math.round(x*10)/10).toFixed(1);
+const kfmt = x => !isFinite(x) ? "—" : (x>=100 ? Math.round(x) : x>=10 ? Math.round(x*10)/10 : Math.round(x*100)/100);
+const esc = s => String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+/* band vertical extent for a target, in mm, clearance included */
+function zoneOf(t){
+  const a = dist(Math.max(t.lo,t.hi));   // heavier = shorter distance
+  const b = dist(Math.min(t.lo,t.hi));
+  return {top:Math.min(a,b), bot:Math.max(a,b)};
+}
+function padZone(t){
+  const z = zoneOf(t);
+  return {top:z.top-state.clearance, bot:z.bot+state.clearance};
+}
+function activeTargets(){
+  return state.targets.filter(t=>t.on && t.lo>0 && t.hi>0)
+    .sort((x,y)=>zoneOf(x).top - zoneOf(y).top);
+}
+
+/* ---------------- auto cut placement ---------------- */
+function autoPlace(){
+  const ts = activeTargets();
+  if(ts.length < 2){ state.cuts = []; return; }
+
+  // merge targets whose padded zones overlap — they cannot be separated
+  const groups = [];
+  for(const t of ts){
+    const z = padZone(t);
+    const g = groups[groups.length-1];
+    if(g && z.top <= g.bot){ g.bot = Math.max(g.bot, z.bot); g.items.push(t); }
+    else groups.push({top:z.top, bot:z.bot, items:[t]});
+  }
+
+  // candidate cut midway between consecutive groups
+  let cuts = [];
+  for(let i=0;i<groups.length-1;i++) cuts.push((groups[i].bot + groups[i+1].top)/2);
+  cuts = cuts.filter(c => c>0 && c<state.gelH).sort((a,b)=>a-b);
+
+  // drop cuts that would create a strip thinner than the minimum
+  let changed = true;
+  while(changed && cuts.length){
+    changed = false;
+    const edges = [0, ...cuts, state.gelH];
+    for(let i=0;i<edges.length-1;i++){
+      if(edges[i+1]-edges[i] < state.minStrip){
+        // remove whichever bounding cut is interior
+        const drop = (i===0) ? cuts[0] : cuts[i-1];
+        cuts = cuts.filter(c=>c!==drop);
+        changed = true; break;
+      }
+    }
+  }
+  state.cuts = cuts.map(c=>Math.round(c*10)/10);
+}
+
+/* ---------------- rendering ---------------- */
+/* Two geometries. A phone viewport can't shrink the desktop layout without making
+   every label unreadable, so narrow screens get their own arrangement: no mm scale
+   bar, a proportionally wider gel, cut values drawn inside the gel, and deletion
+   moved out of the SVG into the cut-list table where a finger can hit it. */
+const NARROW_MQ = "(max-width:700px)";
+const isNarrow = () => window.matchMedia(NARROW_MQ).matches;
+// Derived fresh on every draw rather than cached from an event. A missed
+// matchMedia/resize event would otherwise leave phone geometry on a desktop layout.
+let NARROW = isNarrow();
+function geo(){
+  NARROW = isNarrow();
+  return NARROW
+    ? {W:340, X0:52,  GW:180, Y0:44, GH:452, ladW:32, gap:4,
+       scaleBar:false, svgDel:false, cutInside:true,
+       fsK:10, fsName:10.5, fsSub:9, fsTiny:9, hit:30}
+    : {W:620, X0:118, GW:270, Y0:48, GH:560, ladW:46, gap:6,
+       scaleBar:true,  svgDel:true,  cutInside:false,
+       fsK:10.5, fsName:11.5, fsSub:10, fsTiny:9.5, hit:14};
+}
+let G = geo();
+const mm2y = mm => G.Y0 + (mm/state.gelH)*G.GH;
+const y2mm = y  => ((y-G.Y0)/G.GH)*state.gelH;
+
+function drawGel(){
+  G = geo();
+  const {X0, GW, Y0, GH, ladW, gap} = G;
+  const ts = activeTargets();
+  const lanes = Math.max(1, Math.min(20, state.lanes|0));
+  let s = `<svg viewBox="0 0 ${G.W} ${Y0+GH+58}" width="${G.W}" role="img" aria-label="Gel diagram with ladder, target bands and cut lines">`;
+
+  // gel body
+  s += `<rect x="${X0}" y="${Y0}" width="${GW}" height="${GH}" fill="var(--gel)" stroke="var(--line)" rx="3"/>`;
+
+  // alternating strip shading between cuts
+  const edges = [0, ...state.cuts, state.gelH];
+  for(let i=0;i<edges.length-1;i++){
+    if(i%2===1) continue;
+    const y = mm2y(edges[i]), h = mm2y(edges[i+1])-y;
+    s += `<rect x="${X0}" y="${y}" width="${GW}" height="${h}" fill="rgba(31,111,208,.055)"/>`;
+  }
+
+  // wells + lane guides
+  s += `<rect x="${X0+gap}" y="${Y0-13}" width="${ladW}" height="9" fill="var(--line)"/>`;
+  s += `<text x="${X0+gap+ladW/2}" y="${Y0-18}" text-anchor="middle" font-size="${G.fsTiny}" fill="var(--muted)">ladder</text>`;
+  const sampX0 = X0+gap+ladW+gap, sampW = GW-(sampX0-X0)-gap;
+  const lw = sampW/lanes;
+  for(let i=0;i<lanes;i++){
+    s += `<rect x="${(sampX0+i*lw+1.5).toFixed(1)}" y="${Y0-13}" width="${Math.max(2,lw-3).toFixed(1)}" height="9" fill="var(--line)"/>`;
+    if(i>0) s += `<line x1="${(sampX0+i*lw).toFixed(1)}" y1="${Y0}" x2="${(sampX0+i*lw).toFixed(1)}" y2="${Y0+GH}" stroke="var(--line)" stroke-dasharray="2 4"/>`;
+  }
+  s += `<text x="${sampX0+sampW/2}" y="${Y0-18}" text-anchor="middle" font-size="${G.fsTiny}" fill="var(--muted)">${lanes} lane${lanes>1?"s":""}</text>`;
+
+  // ladder bands
+  for(const mw of ladderShown()){
+    const d = dist(mw); if(!isFinite(d)) continue;
+    const y = mm2y(d);
+    if(y < Y0-2 || y > Y0+GH+2) continue;
+    const col = PINK.has(mw) ? "var(--pink)" : "#1f6fd0";
+    const h = PINK.has(mw) ? 5 : 3.5;
+    s += `<rect x="${X0+gap}" y="${(y-h/2).toFixed(1)}" width="${ladW}" height="${h}" rx="1.5" fill="${col}"/>`;
+    s += `<line x1="${X0-8}" y1="${y.toFixed(1)}" x2="${X0+gap}" y2="${y.toFixed(1)}" stroke="var(--line)"/>`;
+    s += `<text x="${X0-11}" y="${(y+3.4).toFixed(1)}" text-anchor="end" font-size="${G.fsK}"
+           fill="${PINK.has(mw)?'var(--pink)':'var(--muted)'}" font-weight="${PINK.has(mw)?600:400}">${mw}</text>`;
+  }
+  s += `<text x="${X0-11}" y="${Y0-18}" text-anchor="end" font-size="${G.fsTiny}" fill="var(--muted)">kDa</text>`;
+
+  // target bands
+  for(const t of ts){
+    const z = zoneOf(t);
+    const offGel = z.bot < 0 || z.top > state.gelH;
+    const cl = v => Math.max(Y0, Math.min(Y0+GH, v));
+    const yT = cl(mm2y(z.top)), yB = cl(mm2y(z.bot));
+    const h = Math.max(4, yB-yT);
+    s += `<rect x="${sampX0}" y="${yT.toFixed(1)}" width="${sampW}" height="${h.toFixed(1)}" rx="2"
+           fill="${t.color}" fill-opacity="${offGel?0.12:(z.bot>z.top?0.30:0.85)}"
+           stroke="${t.color}" stroke-width="1" ${offGel?'stroke-dasharray="4 3"':""}/>`;
+    const ymid = (yT+yB)/2;
+    if(offGel)
+      s += `<text x="${sampX0+3}" y="${(ymid-4).toFixed(1)}" font-size="${G.fsTiny}" fill="${t.color}" font-weight="600">${NARROW?"extrapolated":"off gel — position extrapolated"}</text>`;
+    s += `<line x1="${X0+GW}" y1="${ymid.toFixed(1)}" x2="${X0+GW+8}" y2="${ymid.toFixed(1)}" stroke="${t.color}"/>`;
+    const mwTxt = t.lo===t.hi ? `${t.lo}` : `${Math.min(t.lo,t.hi)}–${Math.max(t.lo,t.hi)}`;
+    const lx = X0+GW+11;
+    s += `<text x="${lx}" y="${(ymid+3.4).toFixed(1)}" font-size="${G.fsName}" fill="var(--ink)" font-weight="600">${esc(t.name)}</text>`;
+    s += `<text x="${lx}" y="${(ymid+14).toFixed(1)}" font-size="${G.fsSub}" fill="var(--muted)">${mwTxt} kDa${(!NARROW&&t.ab)?" · "+esc(t.ab):""}</text>`;
+  }
+
+  // cut lines
+  state.cuts.forEach((c,i)=>{
+    const y = mm2y(c);
+    const x1 = G.cutInside ? X0-4 : X0-30;
+    s += `<g class="cutg" data-i="${i}">
+       <line x1="${x1}" y1="${y.toFixed(1)}" x2="${X0+GW+6}" y2="${y.toFixed(1)}"
+             stroke="#c4342b" stroke-width="1.6" stroke-dasharray="7 4"/>
+       <rect class="cuthandle" data-i="${i}" x="${x1}" y="${(y-G.hit/2).toFixed(1)}"
+             width="${X0+GW+6-x1}" height="${G.hit}" fill="transparent"/>`;
+    if(G.cutInside){
+      // value sits on the line inside the gel, haloed so it stays legible over shading
+      s += `<text x="${X0+gap+2}" y="${(y-3).toFixed(1)}" font-size="${G.fsK}" fill="#c4342b" font-weight="700"
+              stroke="var(--panel)" stroke-width="2.5" paint-order="stroke">✂ ${f1(c)}</text>`;
+    } else {
+      s += `<text x="${X0-40}" y="${(y+3.6).toFixed(1)}" text-anchor="end" font-size="${G.fsK}" fill="#c4342b" font-weight="600">✂ ${f1(c)}</text>
+       <circle class="cutdel" data-i="${i}" cx="${X0-20}" cy="${y.toFixed(1)}" r="7.5" fill="var(--panel)" stroke="#c4342b" style="cursor:pointer"/>
+       <text class="cutdel" data-i="${i}" x="${X0-20}" y="${(y+3.5).toFixed(1)}" text-anchor="middle" font-size="10" fill="#c4342b" style="cursor:pointer;user-select:none">✕</text>`;
+    }
+    s += `</g>`;
+  });
+
+  // mm scale bar (desktop only — no room for it on a phone)
+  if(G.scaleBar){
+    s += `<line x1="${X0-88}" y1="${Y0}" x2="${X0-88}" y2="${Y0+GH}" stroke="var(--muted)"/>`;
+    for(let mm=0; mm<=state.gelH; mm+=10){
+      const y = mm2y(mm);
+      s += `<line x1="${X0-92}" y1="${y.toFixed(1)}" x2="${X0-88}" y2="${y.toFixed(1)}" stroke="var(--muted)"/>`;
+      s += `<text x="${X0-95}" y="${(y+3.4).toFixed(1)}" text-anchor="end" font-size="9" fill="var(--muted)">${mm}</text>`;
+    }
+    s += `<text x="${X0-95}" y="${Y0-18}" text-anchor="end" font-size="9.5" fill="var(--muted)">mm</text>`;
+  }
+  s += `<text x="${X0+GW/2}" y="${Y0+GH+20}" text-anchor="middle" font-size="${G.fsSub}" fill="var(--muted)">dye front / bottom of gel</text>`;
+  const srcTxt = usingCalib() ? "Positions from YOUR measured ladder"
+    : usingChart() ? (NARROW ? `Bio-Rad ${state.chartGel}% chart (unstained)`
+                             : `Positions from Bio-Rad's ${state.chartGel}% Tris-HCl chart (unstained standards)`)
+    : (NARROW ? "MODELLED — calibrate before cutting" : "Positions are MODELLED — calibrate before cutting");
+  s += `<text x="${X0+GW/2}" y="${Y0+GH+40}" text-anchor="middle" font-size="${G.fsSub}" fill="var(--muted)">${srcTxt}</text>`;
+  s += `</svg>`;
+  return s;
+}
+
+/* nearest ladder band, for a ruler-free description of where to cut */
+function nearestLadder(mm){
+  let best=null;
+  for(const mw of ladderShown()){
+    const d = dist(mw); if(!isFinite(d)) continue;
+    const gap = mm-d;
+    if(!best || Math.abs(gap) < Math.abs(best.gap)) best = {mw, d, gap};
+  }
+  if(!best) return "";
+  if(Math.abs(best.gap) < 0.35) return `level with the ${best.mw} kDa band`;
+  return `${f1(Math.abs(best.gap))} mm ${best.gap>0?"below":"above"} the ${best.mw} kDa band`;
+}
+
+function renderCutList(){
+  const el = document.getElementById("cutList");
+  if(!state.cuts.length){ el.innerHTML = `<div class="note">No cuts placed. Add targets and press “Auto-place cuts”.</div>`; return; }
+  let h = `<ol class="cuts">`;
+  state.cuts.forEach((c,i)=>{
+    h += `<li>
+      <span class="cutn">${i+1}</span>
+      <span class="cutmm">${f1(c)}<small>mm</small></span>
+      <span class="cutmark">${nearestLadder(c)}</span>
+      <button class="rowdel noprint" data-cut="${i}" aria-label="Delete cut ${i+1}">✕</button>
+    </li>`;
+  });
+  h += `</ol>
+        <div class="hint">Mark with pencil on the membrane edge; keep your orientation notch upper-right.</div>`;
+  el.innerHTML = h;
+}
+
+function renderStrips(){
+  const el = document.getElementById("strips");
+  const edges = [0, ...state.cuts, state.gelH];
+  const ts = activeTargets();
+  let h = "";
+  for(let i=0;i<edges.length-1;i++){
+    const top = edges[i], bot = edges[i+1];
+    const mine = ts.filter(t=>{ const z=zoneOf(t); const mid=(z.top+z.bot)/2; return mid>=top && mid<bot; });
+    const color = mine.length ? mine[0].color : "var(--line)";
+    // MW at the strip's own edges; the gel's own top/bottom are open-ended, so don't
+    // quote an extrapolated number there (it reads as "1723 kDa" and means nothing)
+    const atTop = top <= 0.01, atBot = bot >= state.gelH-0.01;
+    const kTop = kfmt(distInv(top)), kBot = kfmt(distInv(bot));
+    const cover = atTop && atBot ? "the whole gel"
+                : atTop ? `everything above ≈ ${kBot} kDa`
+                : atBot ? `≈ ${kTop} kDa and below`
+                : `≈ ${kBot}–${kTop} kDa`;
+    h += `<div class="stripcard" style="border-left-color:${color}">
+      <h3>Strip ${i+1}${mine.length?" — "+mine.map(t=>esc(t.name)).join(" + "):" — <span style='color:var(--muted);font-weight:400'>empty</span>"}</h3>
+      <div class="meta">${f1(top)}–${f1(bot)} mm from top &nbsp;·&nbsp; ${f1(bot-top)} mm tall
+        &nbsp;·&nbsp; covers ${cover}</div>`;
+    if(mine.length){
+      h += `<div class="chips">` + mine.map(t=>{
+        const mwTxt = t.lo===t.hi ? `${t.lo} kDa` : `${Math.min(t.lo,t.hi)}–${Math.max(t.lo,t.hi)} kDa`;
+        return `<span class="chip"><b>${esc(t.name)}</b> ${mwTxt}${t.ab?" · "+esc(t.ab):""}${t.host?" · "+esc(t.host):""}</span>`;
+      }).join("") + `</div>`;
+    }
+    h += `</div>`;
+  }
+  el.innerHTML = h;
+}
+
+function renderFlags(){
+  const el = document.getElementById("flags");
+  const ts = activeTargets();
+  const out = [];
+
+  if(state.mode==="calibrated" && !FIT)
+    out.push(["err","Calibrated mode is selected but fewer than two ladder distances are entered — falling back to the model."]);
+  if(state.mode==="model")
+    out.push(["warn",`Model mode — positions are estimated, not measured. Calibrate before you cut. <a href="#method-positions" class="lnk">How this works</a>`]);
+
+  if(usingChart()){
+    out.push(["warn",`Bio-Rad chart mode — real vendor data from the ${state.chartGel}% column, but for <b>unstained</b> standards on <b>precast midi</b> gels, not your prestained ladder on a handcast mini. Calibrated still beats this. <a href="#method-positions" class="lnk">Details</a>`]);
+    const off = LADDER.filter(mw=>BIORAD_RF[state.chartGel][mw] === undefined);
+    if(off.length)
+      out.push(["warn",`Bio-Rad's chart does not show the ${off.join(", ")} kDa band${off.length>1?"s":""} on a ${state.chartGel}% gel — ${off.length>1?"they run":"it runs"} off the end. ${off.length>1?"They are":"It is"} omitted from the drawing, and any target down there cannot be placed from this chart.`]);
+    for(const t of ts){
+      const lo = Math.min(t.lo,t.hi), hi = Math.max(t.lo,t.hi);
+      const dex = Math.max(chartRfInfo(hi)?.extrap||0, chartRfInfo(lo)?.extrap||0);
+      if(dex > 0.1)
+        out.push([dex>0.25?"err":"warn",`<b>${esc(t.name)}</b> (${lo===hi?lo:lo+"–"+hi} kDa) lies beyond the range the ${state.chartGel}% chart column covers, so its position is extrapolated past the last tabulated band${dex>0.25?" — do not cut to it":""}. A different gel percentage would bring it on-scale.`]);
+    }
+  }
+
+  // extrapolation beyond the calibration span — the most dangerous silent failure here
+  if(usingCalib()){
+    const inc = LADDER.filter(mw=>typeof state.calib[mw]==="number" && isFinite(state.calib[mw]) && !state.calibOff[mw]);
+    if(inc.length){
+      const cMin = Math.min(...inc), cMax = Math.max(...inc);
+      for(const t of ts){
+        const lo = Math.min(t.lo,t.hi), hi = Math.max(t.lo,t.hi);
+        // how far outside the calibration span, in decades of MW
+        const dex = Math.max(hi>cMax ? Math.log10(hi/cMax) : 0, lo<cMin ? Math.log10(cMin/lo) : 0);
+        if(dex <= 0.1) continue;                       // just past the end band — negligible
+        const nm = `<b>${esc(t.name)}</b> (${lo===hi?lo:lo+"–"+hi} kDa)`;
+        const tail = `Your calibration spans ${cMin}–${cMax} kDa, so this position is <b>extrapolated</b> past the end of the fitted line rather than interpolated between measured bands. Tick a ladder band on the far side of it and refit.`;
+        out.push([dex > 0.25 ? "err" : "warn",
+          dex > 0.25 ? `${nm} is far outside your calibration span — do not cut to this position. ${tail}`
+                     : `${nm} sits a little beyond your calibration span. ${tail}`]);
+      }
+      const off = LADDER.filter(mw=>{ const d = dist(mw); return isFinite(d) && (d < 0 || d > state.gelH); });
+      if(off.length)
+        out.push(["warn",`This fit projects the ${off.join(", ")} kDa ladder band${off.length>1?"s":""} outside the ${f1(state.gelH)} mm gel, so ${off.length>1?"they are":"it is"} not drawn. That is normal when you fit a narrow span and extrapolate outward, and it does not affect targets that sit inside ${Math.min(...inc)}–${Math.max(...inc)} kDa.`]);
+    }
+  }
+
+  // targets outside the gel's documented resolving range
+  const [rLo,rHi] = range();
+  const flaggedRange = new Set();
+  for(const t of ts){
+    if(usingChart()) break;        // the chart's own coverage is better evidence than the range table
+    const lo = Math.min(t.lo,t.hi), hi = Math.max(t.lo,t.hi);
+    if(hi > rHi || lo < rLo){
+      flaggedRange.add(t.id);
+      const pctTxt = state.gelPct==="custom" ? "this gel" : `a ${state.gelPct}% gel`;
+      out.push(["warn",`<b>${esc(t.name)}</b> (${lo===hi?lo:lo+"–"+hi} kDa) falls outside the ${rLo}–${rHi} kDa resolving range of ${pctTxt}. It will still show up, but compressed — spacing around it is unreliable, so leave extra clearance or run it on a separate gel.`]);
+    }
+  }
+
+  // bands crowded against the well or the dye front
+  for(const t of ts){
+    if(flaggedRange.has(t.id)) continue;   // already covered by the range warning above
+    const z = zoneOf(t);
+    const rTop = z.top/state.gelH, rBot = z.bot/state.gelH;
+    if(rTop < 0.06)
+      out.push(["warn",`<b>${esc(t.name)}</b> sits within ~6% of the well on this gel — poorly resolved. A lower % gel would separate it better.`]);
+    else if(rBot > 0.94)
+      out.push(["warn",`<b>${esc(t.name)}</b> runs near the dye front — it may already be off the gel. A higher % gel would hold it.`]);
+  }
+
+  // pairs too close to separate
+  for(let i=0;i<ts.length;i++) for(let j=i+1;j<ts.length;j++){
+    const a = padZone(ts[i]), b = padZone(ts[j]);
+    if(a.bot >= b.top && b.bot >= a.top){
+      const gapMm = Math.abs(zoneOf(ts[j]).top - zoneOf(ts[i]).bot);
+      out.push(["err",`<b>${esc(ts[i].name)}</b> and <b>${esc(ts[j].name)}</b> are only ${f1(gapMm)} mm apart — closer than the ${f1(2*state.clearance)} mm of clearance you asked for. They cannot go on separate strips. Probe them sequentially on one strip (strip and reprobe), run a different gel %, or use different-host primaries with two-color fluorescent secondaries.`]);
+    }
+  }
+
+  // shared strip + shared host
+  const edges = [0, ...state.cuts, state.gelH];
+  for(let i=0;i<edges.length-1;i++){
+    const mine = ts.filter(t=>{ const z=zoneOf(t); const m=(z.top+z.bot)/2; return m>=edges[i] && m<edges[i+1]; });
+    if(mine.length>1){
+      const hosts = mine.map(t=>(t.host||"").trim().toLowerCase()).filter(Boolean);
+      if(hosts.length>1 && new Set(hosts).size===1)
+        out.push(["warn",`Strip ${i+1} carries ${mine.length} targets that all use <b>${esc(mine[0].host)}</b> primaries. One anti-${esc(mine[0].host.toLowerCase())} secondary will light up both, so they are only distinguishable if their MWs are far enough apart to read separately. Otherwise probe sequentially with stripping.`]);
+    }
+  }
+
+  // band too close to a cut
+  for(const c of state.cuts) for(const t of ts){
+    const z = zoneOf(t);
+    const gap = Math.min(Math.abs(c-z.top), Math.abs(c-z.bot));
+    if(c>z.top && c<z.bot)
+      out.push(["err",`A cut at ${f1(c)} mm passes straight through the <b>${esc(t.name)}</b> band. Move it.`]);
+    else if(gap < state.clearance)
+      out.push(["warn",`Cut at ${f1(c)} mm is only ${f1(gap)} mm from the <b>${esc(t.name)}</b> band (you asked for ${f1(state.clearance)} mm clearance).`]);
+  }
+
+  // thin strips
+  for(let i=0;i<edges.length-1;i++){
+    const hgt = edges[i+1]-edges[i];
+    if(hgt < state.minStrip)
+      out.push(["warn",`Strip ${i+1} is ${f1(hgt)} mm tall, under your ${f1(state.minStrip)} mm minimum — awkward to handle and prone to curling.`]);
+  }
+
+  if(out.filter(o=>o[0]==="err").length===0 && ts.length>1 && state.cuts.length)
+    out.unshift(["ok",`${state.cuts.length} cut${state.cuts.length>1?"s":""} → ${state.cuts.length+1} strips, no target bisected.`]);
+
+  el.innerHTML = out.length
+    ? out.map(([k,m])=>`<div class="flag ${k}">${m}</div>`).join("")
+    : `<div class="note">Add two or more targets to see conflict checks.</div>`;
+}
+
+function renderTargets(){
+  const el = document.getElementById("targets");
+  el.innerHTML = state.targets.map(t=>{
+    const d = zoneOf(t);
+    const pos = (t.lo>0&&t.hi>0&&isFinite(d.top)) ? `${f1(d.top)}${d.bot-d.top>0.1?"–"+f1(d.bot):""} mm from top` : "—";
+    return `<div class="tgt" data-id="${t.id}">
+      <div class="hd">
+        <input type="checkbox" data-k="on" ${t.on?"checked":""} title="Include this target" aria-label="Include ${esc(t.name)}">
+        <span class="swatch" style="background:${t.color}"></span>
+        <input type="text" data-k="name" value="${esc(t.name)}" placeholder="Protein" aria-label="Target name">
+        <button class="danger mini" data-del="1" title="Remove target" aria-label="Remove ${esc(t.name)}">✕</button>
+      </div>
+      <div class="row">
+        <div><label id="lo${t.id}">MW low (kDa)</label><input type="number" data-k="lo" value="${t.lo}" min="0.1" step="0.5" inputmode="decimal" aria-labelledby="lo${t.id}" aria-label="${esc(t.name)} molecular weight low"></div>
+        <div><label id="hi${t.id}">MW high</label><input type="number" data-k="hi" value="${t.hi}" min="0.1" step="0.5" inputmode="decimal" aria-label="${esc(t.name)} molecular weight high"></div>
+      </div>
+      <div class="row">
+        <div><label>Antibody</label><input type="text" data-k="ab" value="${esc(t.ab)}" placeholder="cat # / dilution" aria-label="${esc(t.name)} antibody"></div>
+        <div><label>Host</label><input type="text" data-k="host" value="${esc(t.host)}" placeholder="Rabbit" aria-label="${esc(t.name)} host species"></div>
+      </div>
+      <div class="note">${pos}</div>
+    </div>`;
+  }).join("") || `<div class="note">No targets yet.</div>`;
+}
+
+function renderCalibRows(){
+  const tb = document.getElementById("calibRows");
+  const [rLo,rHi] = range();
+  tb.innerHTML = LADDER.map(mw=>{
+    const v = state.calib[mw];
+    const inRange = mw>=rLo && mw<=rHi;
+    return `<tr>
+      <td><input type="checkbox" data-off="${mw}" ${state.calibOff[mw]?"":"checked"} title="Include in fit" aria-label="Include the ${mw} kDa band in the fit"></td>
+      <td style="color:${PINK.has(mw)?'var(--pink)':'inherit'};font-weight:${PINK.has(mw)?600:400}">${mw} kDa${PINK.has(mw)?" (pink)":""}
+        ${inRange?"":`<span style="color:var(--muted);font-weight:400"> ·&nbsp;out of range</span>`}</td>
+      <td><input type="number" step="0.1" min="0" data-mw="${mw}" value="${v??""}" placeholder="—"
+          inputmode="decimal" aria-label="Measured distance to the ${mw} kDa band, in millimetres"></td></tr>`;
+  }).join("");
+}
+
+function renderFitBox(){
+  const out = document.getElementById("fitOut");
+  if(!FIT){ out.innerHTML = `<div class="flag warn">Enter at least two distances (with Fit ticked) to fit.</div>`; return; }
+  const worst = FIT.resid.reduce((a,b)=>Math.abs(b.meas-b.pred)>Math.abs(a.meas-a.pred)?b:a);
+  const q = FIT.r2>=0.99 ? "ok" : FIT.r2>=0.97 ? "warn" : "err";
+  out.innerHTML = `<div class="flag ${q}">
+    Fit on ${FIT.n} band${FIT.n>1?"s":""}: distance = ${f1(FIT.A)} ${FIT.B<0?"−":"+"} ${f1(Math.abs(FIT.B))}·log₁₀(kDa),
+    <b>R² = ${FIT.r2.toFixed(4)}</b>.<br>
+    Largest residual: ${worst.mw} kDa off by ${f1(Math.abs(worst.meas-worst.pred))} mm.
+    ${FIT.r2<0.97 ? " Low R². Either a band was mis-measured, or you are fitting bands outside the gel's linear range — untick those and refit before trusting these positions." : ""}
+  </div>`;
+}
+
+function renderCalib(){ renderCalibRows(); renderFitBox(); }
+
+function renderChartCaveat(){
+  const el = document.getElementById("chartCaveat");
+  const t = BIORAD_RF[state.chartGel] || {};
+  const shown = LADDER.filter(mw=>t[mw]!==undefined), off = LADDER.filter(mw=>t[mw]===undefined);
+  const match = Object.entries(CHART_FOR_PCT).find(([p,c])=>c===state.chartGel);
+  el.innerHTML = `<div class="note" style="margin-top:8px">
+    Bands on this column: ${shown.join(", ")} kDa${off.length?` &nbsp;·&nbsp; run off: ${off.join(", ")}`:""}.
+    ${match ? `Closest to a <b>${match[0]}%</b> handcast gel${match[0]===state.chartGel?"":` (the chart has no ${match[0]}% column)`}.` : ""}
+    </div>
+    <div class="flag warn" style="margin-top:6px">Vendor data, but <b>unstained</b> standards on <b>precast midi</b>
+    gels — not your prestained ladder on a handcast mini.
+    <a href="#method-positions" class="lnk">Why this matters</a></div>`;
+}
+
+/* What the printed sheet says. It has to state which source produced the numbers —
+   a printout of modelled positions looks identical to a calibrated one otherwise. */
+function renderPrintNote(){
+  const src = usingCalib() ? `Calibrated to your own measured ladder (R² = ${FIT ? FIT.r2.toFixed(4) : "—"})`
+    : usingChart() ? `Bio-Rad ${state.chartGel}% Tris-HCl chart — unstained standards, precast midi gels`
+    : "MODELLED estimate — not measured from your gel";
+  document.getElementById("printNote").innerHTML =
+    `<b>Position source:</b> ${esc(src)}. &nbsp; <b>Gel:</b> ${esc(state.gelPct)}% · ${f1(state.gelH)} mm ·
+     ladder Bio-Rad Precision Plus Dual Color #1610374.<br>
+     <b>For research use only.</b> A planning aid, not a measurement, provided without warranty.
+     Verify every position against your own stained membrane before scoring it. &nbsp; BlotPlanner v${APP_VERSION}`;
+}
+
+function renderAll(){
+  FIT = fit();
+  document.getElementById("svgHost").innerHTML = drawGel();
+  wireSvg();
+  renderCutList(); renderStrips(); renderFlags(); renderTargets(); renderCalib();
+  renderChartCaveat(); renderPrintNote();
+}
+
+/* ---------------- interaction ---------------- */
+function wireSvg(){
+  const svg = document.querySelector("#svgHost svg");
+  if(!svg) return;
+  let dragging = null;
+
+  svg.addEventListener("pointerdown", e=>{
+    const del = e.target.closest(".cutdel");
+    if(del){ state.cuts.splice(+del.dataset.i,1); renderAll(); return; }
+    const h = e.target.closest(".cuthandle");
+    if(h){
+      dragging = +h.dataset.i;
+      svg.setPointerCapture(e.pointerId);
+      // Suppress scrolling only while a cut is actually being dragged. Setting this
+      // permanently would trap the page: the gel is tall and users scroll past it.
+      // (CSS touch-action is unreliable on SVG children, so set it on the root here.)
+      svg.style.touchAction = "none";
+      e.preventDefault();
+    }
+  });
+  svg.addEventListener("pointermove", e=>{
+    if(dragging===null) return;
+    const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
+    const loc = pt.matrixTransform(svg.getScreenCTM().inverse());
+    let mm = y2mm(loc.y);
+    mm = Math.max(0.2, Math.min(state.gelH-0.2, mm));
+    state.cuts[dragging] = Math.round(mm*10)/10;
+    state.cuts.sort((a,b)=>a-b);
+    document.getElementById("svgHost").innerHTML = drawGel();  // light redraw while dragging
+  });
+  const endDrag = ()=>{ svg.style.touchAction = ""; };
+  svg.addEventListener("pointerup", ()=>{ endDrag(); if(dragging!==null){ dragging=null; renderAll(); } });
+  svg.addEventListener("pointercancel", ()=>{ endDrag(); dragging=null; });
+}
+
+function bindNum(id, key, after){
+  const el = document.getElementById(id);
+  el.addEventListener("input", ()=>{
+    const v = parseFloat(el.value);
+    if(isFinite(v)) state[key] = v;
+    if(after) after();
+    renderAll();
+  });
+}
+
+document.getElementById("gelPct").addEventListener("change", e=>{
+  state.gelPct = e.target.value;
+  document.getElementById("customRange").style.display = state.gelPct==="custom" ? "" : "none";
+  autoPlace(); renderAll();
+});
+bindNum("cLo","cLo",autoPlace);
+bindNum("cHi","cHi",autoPlace);
+bindNum("gelH","gelH",autoPlace);
+bindNum("lanes","lanes");
+bindNum("minStrip","minStrip",autoPlace);
+bindNum("clearance","clearance",autoPlace);
+
+function syncModePanes(){
+  document.getElementById("calibPane").style.display = state.mode==="calibrated" ? "" : "none";
+  document.getElementById("chartPane").style.display = state.mode==="chart" ? "" : "none";
+}
+document.getElementById("modeSeg").addEventListener("click", e=>{
+  const b = e.target.closest("button[data-mode]"); if(!b) return;
+  state.mode = b.dataset.mode;
+  [...document.querySelectorAll("#modeSeg button")].forEach(x=>x.classList.toggle("on", x===b));
+  // entering chart mode: jump to the column nearest the gel % already chosen
+  if(state.mode==="chart" && CHART_FOR_PCT[state.gelPct]){
+    state.chartGel = CHART_FOR_PCT[state.gelPct];
+    document.getElementById("chartGel").value = state.chartGel;
+  }
+  syncModePanes(); autoPlace(); renderAll();
+});
+document.getElementById("chartGel").addEventListener("change", e=>{
+  state.chartGel = e.target.value; autoPlace(); renderAll();
+});
+
+/* light refresh that leaves the calibration inputs (and focus) alone */
+function refreshFromCalib(){
+  FIT = fit(); autoPlace();
+  document.getElementById("svgHost").innerHTML = drawGel(); wireSvg();
+  renderCutList(); renderStrips(); renderFlags(); renderTargets(); renderFitBox();
+}
+document.getElementById("calibRows").addEventListener("input", e=>{
+  const mw = e.target.dataset.mw; if(!mw) return;
+  const v = parseFloat(e.target.value);
+  if(isFinite(v) && v>=0) state.calib[mw] = v; else delete state.calib[mw];
+  refreshFromCalib();
+});
+document.getElementById("calibRows").addEventListener("change", e=>{
+  const mw = e.target.dataset.off; if(!mw) return;
+  if(e.target.checked) delete state.calibOff[mw]; else state.calibOff[mw] = true;
+  refreshFromCalib();
+});
+/* Keep the bands inside the resolving range PLUS the nearest band on each side, so the
+   fit brackets targets that sit just outside the range instead of extrapolating to them. */
+document.getElementById("fitRange").addEventListener("click", ()=>{
+  const [rLo,rHi] = range();
+  const keep = new Set(LADDER.filter(mw=>mw>=rLo && mw<=rHi));
+  const below = LADDER.filter(mw=>mw<rLo), above = LADDER.filter(mw=>mw>rHi);
+  if(below.length) keep.add(Math.max(...below));
+  if(above.length) keep.add(Math.min(...above));
+  state.calibOff = {};
+  for(const mw of LADDER) if(!keep.has(mw)) state.calibOff[mw] = true;
+  autoPlace(); renderAll();
+});
+document.getElementById("fitAll").addEventListener("click", ()=>{ state.calibOff = {}; autoPlace(); renderAll(); });
+document.getElementById("clearCalib").addEventListener("click", ()=>{
+  state.calib = {}; state.calibOff = {}; autoPlace(); renderAll();
+});
+
+document.getElementById("targets").addEventListener("input", e=>{
+  const box = e.target.closest(".tgt"); if(!box) return;
+  const t = state.targets.find(x=>x.id === +box.dataset.id); if(!t) return;
+  const k = e.target.dataset.k; if(!k) return;
+  if(k==="on") t.on = e.target.checked;
+  else if(k==="lo"||k==="hi"){ const v=parseFloat(e.target.value); if(isFinite(v)&&v>0) t[k]=v; }
+  else t[k] = e.target.value;
+  autoPlace();
+  document.getElementById("svgHost").innerHTML = drawGel(); wireSvg();
+  renderCutList(); renderStrips(); renderFlags();
+});
+document.getElementById("targets").addEventListener("click", e=>{
+  const d = e.target.closest("[data-del]"); if(!d) return;
+  const box = d.closest(".tgt");
+  state.targets = state.targets.filter(x=>x.id !== +box.dataset.id);
+  autoPlace(); renderAll();
+});
+document.getElementById("addTgt").addEventListener("click", ()=>{
+  state.targets.push({id:uid++, name:"New target", lo:50, hi:50, ab:"", host:"",
+    color:PALETTE[state.targets.length % PALETTE.length], on:true});
+  autoPlace(); renderAll();
+});
+
+const pp = document.getElementById("presetPane");
+pp.innerHTML = LOADING_CONTROLS.map((grp,gi)=>{
+  const btns = grp.items.map((p,pi)=>{
+    const mw = p.lo===p.hi ? `${p.lo}` : `${p.lo}–${p.hi}`;
+    const tip = `CST #${p.cat}${p.note?" — "+p.note:""}`;
+    return `<button class="ghost mini" data-g="${gi}" data-i="${pi}" title="${esc(tip)}"
+      style="margin:0 5px 5px 0">${esc(p.name)} · ${mw}${p.unverified?" ⚠":""}</button>`;
+  }).join("");
+  return `<div style="margin-top:9px"><div style="font-size:11.5px;color:var(--muted);font-weight:600;
+    text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">${esc(grp.g)}</div>${btns}</div>`;
+}).join("") + `<div class="hint" style="margin-top:11px">Observed MWs from CST datasheets — hover for the catalog
+number.${LOADING_CONTROLS.some(g=>g.items.some(p=>p.unverified)) ? " ⚠ = unverified." : ""}
+<a href="#method-controls">Provenance &amp; caveats</a></div>`;
+
+pp.addEventListener("click", e=>{
+  const b = e.target.closest("[data-g]"); if(!b) return;
+  const p = LOADING_CONTROLS[+b.dataset.g].items[+b.dataset.i];
+  if(state.targets.some(t=>t.name===p.name)) return;      // don't add the same control twice
+  state.targets.push({id:uid++, name:p.name, lo:p.lo, hi:p.hi, ab:"CST #"+p.cat, host:p.host,
+    color:PALETTE[state.targets.length % PALETTE.length], on:true});
+  autoPlace(); renderAll();
+});
+
+// cut deletion from the table — the only way to delete on narrow screens,
+// where the SVG ✕ is dropped for lack of room
+document.getElementById("cutList").addEventListener("click", e=>{
+  const b = e.target.closest("[data-cut]"); if(!b) return;
+  state.cuts.splice(+b.dataset.cut, 1);
+  renderAll();
+});
+
+document.getElementById("autoCut").addEventListener("click", ()=>{ autoPlace(); renderAll(); });
+document.getElementById("addCut").addEventListener("click", ()=>{
+  state.cuts.push(Math.round(state.gelH/2*10)/10);
+  state.cuts.sort((a,b)=>a-b); renderAll();
+});
+
+/* persistence */
+const LSKEY = "wb-cut-planner-v1";
+function snapshot(){ return JSON.stringify({...state, uid, appVersion:APP_VERSION}); }
+function restore(obj){
+  Object.assign(state, obj);
+  state.calib = obj.calib || {};
+  state.calibOff = obj.calibOff || {};
+  uid = Math.max(obj.uid||1, ...state.targets.map(t=>t.id||0))+1;
+  document.getElementById("gelPct").value = state.gelPct;
+  document.getElementById("customRange").style.display = state.gelPct==="custom" ? "" : "none";
+  document.getElementById("cLo").value = state.cLo;
+  document.getElementById("cHi").value = state.cHi;
+  document.getElementById("gelH").value = state.gelH;
+  document.getElementById("lanes").value = state.lanes;
+  document.getElementById("minStrip").value = state.minStrip;
+  document.getElementById("clearance").value = state.clearance;
+  document.getElementById("chartGel").value = state.chartGel || "12.5";
+  [...document.querySelectorAll("#modeSeg button")].forEach(x=>x.classList.toggle("on", x.dataset.mode===state.mode));
+  syncModePanes();
+  renderAll();
+}
+document.getElementById("saveLS").addEventListener("click", ()=>{
+  try{ localStorage.setItem(LSKEY, snapshot()); alert("Saved in this browser."); }
+  catch(err){ alert("Could not save: "+err.message); }
+});
+document.getElementById("loadLS").addEventListener("click", ()=>{
+  const s = localStorage.getItem(LSKEY);
+  if(!s){ alert("Nothing saved in this browser yet."); return; }
+  try{ restore(JSON.parse(s)); }catch(err){ alert("Saved data unreadable: "+err.message); }
+});
+document.getElementById("expJSON").addEventListener("click", ()=>{
+  const blob = new Blob([JSON.stringify(JSON.parse(snapshot()),null,2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "membrane-cut-plan.json";
+  a.click(); URL.revokeObjectURL(a.href);
+});
+document.getElementById("impJSON").addEventListener("click", ()=>document.getElementById("fileIn").click());
+document.getElementById("fileIn").addEventListener("change", e=>{
+  const f = e.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = ()=>{ try{ restore(JSON.parse(r.result)); }catch(err){ alert("Bad JSON: "+err.message); } };
+  r.readAsText(f);
+});
+document.getElementById("printBtn").addEventListener("click", ()=>window.print());
+
+/* ---------------- first run + version ---------------- */
+document.getElementById("verLabel").textContent = "v" + APP_VERSION;
+document.getElementById("verInline").textContent = APP_VERSION;
+
+// Show the three-step guidance once. Dismissal persists, so returning users
+// never see it again, and it stays out of the way of everyone else.
+const SEEN_KEY = "wb-cut-planner-seen";
+const firstRun = document.getElementById("firstRun");
+try{
+  if(!localStorage.getItem(SEEN_KEY)) firstRun.hidden = false;
+}catch(err){ firstRun.hidden = false; }   // private mode: show it, just don't remember
+document.getElementById("firstRunX").addEventListener("click", ()=>{
+  firstRun.hidden = true;
+  try{ localStorage.setItem(SEEN_KEY, "1"); }catch(err){}
+});
+
+/* ---------------- mobile plumbing ---------------- */
+
+// switch SVG geometry when crossing the phone breakpoint
+/* Method page routing. The long-form explanation lives on its own view rather than
+   crowding the tool, but stays inside this one file so the app remains a single
+   self-contained download that works offline and from disk. */
+const appView = document.getElementById("appView");
+const docView = document.getElementById("docView");
+function syncRoute(){
+  const h = location.hash || "";
+  const onDocs = h.indexOf("#method") === 0;
+  appView.hidden = onDocs;
+  docView.hidden = !onDocs;
+  if(onDocs){
+    const target = h.length > 7 ? document.getElementById(h.slice(1)) : null;
+    if(target) target.scrollIntoView({block:"start"});
+    else window.scrollTo(0,0);
+  } else {
+    window.scrollTo(0,0);
+  }
+}
+window.addEventListener("hashchange", syncRoute);
+syncRoute();
+
+// Re-render when crossing the phone breakpoint. Listen to both matchMedia and
+// window resize — the media-query event alone is not reliable everywhere, and a
+// missed transition leaves the wrong SVG geometry on screen.
+let lastNarrow = isNarrow(), resizeTimer = null;
+function onViewportChange(){
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(()=>{
+    if(isNarrow() !== lastNarrow){ lastNarrow = isNarrow(); renderAll(); }
+  }, 120);
+}
+window.addEventListener("resize", onViewportChange);
+window.addEventListener("orientationchange", onViewportChange);
+const mq = window.matchMedia(NARROW_MQ);
+mq.addEventListener ? mq.addEventListener("change", onViewportChange) : mq.addListener(onViewportChange);
+if("ResizeObserver" in window) new ResizeObserver(onViewportChange).observe(document.documentElement);
+// Last-resort poll. All four signals above were observed to stay silent under one
+// embedded/emulated viewport, which would strand phone geometry on a desktop layout
+// (or the reverse) until the next interaction. Two boolean comparisons a second is
+// far cheaper than shipping a layout that is wrong and cannot self-correct.
+setInterval(()=>{
+  if(isNarrow() !== lastNarrow){ lastNarrow = isNarrow(); renderAll(); }
+}, 500);
+
+// Screen Wake Lock — at the bench with gloves on, the screen locking mid-cut is
+// genuinely annoying. Supported on Android Chrome and, since Safari 18.4, on iOS
+// home-screen web apps. Absent elsewhere, so it stays entirely optional.
+let wakeLock = null, wakeWanted = false;
+if("wakeLock" in navigator){
+  const btn = document.getElementById("wakeBtn");
+  btn.hidden = false;
+  const sync = ()=>{
+    btn.textContent = wakeLock ? "Screen stays on ✓" : "Keep screen on";
+    btn.classList.toggle("ghost", !wakeLock);
+  };
+  const acquire = async ()=>{
+    try{
+      wakeLock = await navigator.wakeLock.request("screen");
+      wakeLock.addEventListener("release", ()=>{ wakeLock = null; sync(); });
+    }catch(err){ wakeLock = null; }   // denied or unsupported — stay off
+    sync();
+  };
+  btn.addEventListener("click", async ()=>{
+    wakeWanted = !wakeLock;
+    if(wakeLock){ try{ await wakeLock.release(); }catch(err){} wakeLock = null; sync(); }
+    else await acquire();
+  });
+  // the OS drops the lock whenever the tab is backgrounded; take it again on return
+  document.addEventListener("visibilitychange", ()=>{
+    if(wakeWanted && !wakeLock && document.visibilityState === "visible") acquire();
+  });
+}
+
+// Service worker for offline use. Only registers over http(s) — opening this file
+// straight from disk (file://) has no SW, which is fine: the page is self-contained.
+if("serviceWorker" in navigator && location.protocol.startsWith("http")){
+  window.addEventListener("load", ()=>{
+    navigator.serviceWorker.register("sw.js").catch(()=>{ /* not hosted as a PWA; ignore */ });
+  });
+}
+
+autoPlace();
+renderAll();
+</script>
+</body>
+</html>

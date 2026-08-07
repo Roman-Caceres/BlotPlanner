@@ -8,7 +8,7 @@
  *
  * Bump CACHE whenever app files change, so old caches are evicted on activate.
  */
-const CACHE = "blotplanner-v9";
+const CACHE = "blotplanner-v10";
 const ASSETS = [
   "./",
   "./index.html",

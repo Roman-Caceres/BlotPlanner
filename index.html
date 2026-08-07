@@ -523,10 +523,11 @@
   specification field, and is quoted verbatim. Each button's tooltip carries the catalog number the value came
   from, so any of them can be rechecked at <code>cellsignal.com/products/&lt;cat&gt;/datasheet</code>.
   <b>None were written from memory.</b></p>
-  <div class="callout">CST's own summary table in their loading-control blog post <b>disagrees with their product
-  pages</b> in three places: it lists β-Tubulin at 35 kDa and Profilin-1 at 9/5 kDa, where the datasheets say
-  <b>55</b> and <b>15</b>; and it gives α-Actinin's catalog number as 64887, which does not resolve — the real
-  product is <b>#6487</b> (100 kDa). This tool follows the product pages in every case.</div>
+  <div class="callout plain">Weights are taken from each antibody's own datasheet rather than from any
+  quick-reference summary, because overview tables and product specifications can differ. In the overview table
+  of CST's loading-control guide, for example, β-Tubulin appears at 35 kDa and Profilin-1 at 9 and 5 kDa, while
+  datasheets <b>#2128</b> and <b>#3246</b> state <b>55</b> and <b>15</b> kDa. The datasheet is the authoritative
+  specification, so that is what this tool uses throughout.</div>
   <p>Where a datasheet lists two bands — Lamin B1 68 and 45, Lamin A/C 70 and 28, Caveolin-1 21 and 24 — the preset
   uses the full-length species and the tooltip names the other, because a cleavage product you didn't plan for is a
   good way to lose a strip.</p>
@@ -629,11 +630,12 @@ const CHART_FOR_PCT = {"8":"7.5", "10":"10", "12":"12.5", "15":"15"};
    and is quoted verbatim — not recalled, not inferred.
    The catalog number next to each entry is the page the value came from:
    cellsignal.com/products/<cat>/datasheet
-   Note: CST's summary table in their loading-control blog post disagrees
-   with several of these product pages. It shows beta-Tubulin at 35 and
-   Profilin-1 at 9/5 (datasheets: 55 and 15), and gives alpha-Actinin's
-   catalog number as 64887, which does not resolve — the real product is
-   #6487. The product pages win in every case.
+   Sourced from individual datasheets, not from summary tables, because the
+   two can differ: the overview table in CST's loading-control guide shows
+   beta-Tubulin at 35 and Profilin-1 at 9/5, where datasheets #2128 and
+   #3246 state 55 and 15. Both were confirmed by parsing the guide's raw
+   HTML, not a text conversion of it. The datasheet is the authoritative
+   spec and is what these values follow.
    ------------------------------------------------------------------ */
 const LOADING_CONTROLS = [
   {g:"Whole cell / cytoplasmic", items:[

@@ -1565,7 +1565,7 @@ if("serviceWorker" in navigator && location.protocol.startsWith("http")){
    no IP or User-Agent, and sets no cookies (goatcounter.com/help/gdpr).
    It counts page views. It never sees your gel, targets, or measurements —
    those never leave the browser under any configuration. */
-const GC_CODE = "";                                  // ← your GoatCounter code enables this
+const GC_CODE = "roman-caceres";                     // GoatCounter site code; "" disables counting
 const GC_HOSTS = ["roman-caceres.github.io"];
 if(GC_CODE && GC_HOSTS.indexOf(location.hostname) !== -1){
   const s = document.createElement("script");
